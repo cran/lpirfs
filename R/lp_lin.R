@@ -1,0 +1,353 @@
+#' @name lp_lin
+#' @title Compute linear impulse responses
+#' @description Compute linear impulse responses with local projections by Jordà (2005).
+#'
+#' @param data_set_df A \link{data.frame}() containing all endogenous variables for the VAR. The column order
+#'                    is used for the Cholesky decomposition.
+#' @param lags_criterion NaN or character. NaN means that the number of lags
+#'         will be given at \emph{lags_lin}. The character refers to the corresponding lag length criterion ('AICc', 'AIC' or 'BIC').
+#' @param lags_lin NaN or integer. NaN if lag length criterion is used. Integer for number of lags for linear VAR.
+#' @param max_lags NaN or integer. Maximum number of lags if \emph{lags_criterion} is character with lag length criterion. NaN otherwise.
+#' @param trend Integer. No trend =  0 , include trend = 1, include trend and quadratic trend = 2.
+#' @param shock_type Integer. Standard deviation shock = 0, unit shock = 1.
+#' @param confint Double. Width of confidence bands. 68\% = 1, 90\% = 1.65, 95\% = 1.96.
+#' @param hor Integer. Number of horizons for impulse responses.
+#'
+#' @return A list with impulse responses and their robust confidence bands.
+#' It also returns a list named \emph{specs} with properties of \emph{data_set_df} for the plot function.
+#'
+#'\item{irf_lin_mean}{A three 3D \link{array}() containing all impulse responses for all endogenous variables.
+#'                    The last dimension denotes the shock variable. The row in each matrix
+#'                    gives the responses of the \emph{ith} variable, ordered as in data_set_df. The columns denote the horizon.
+#'                    For example, if \emph{results_lin} contains the list with results, results_lin$irf_lin_mean[, , 1] returns a KXH matrix,
+#'                    where K is the number of variables and H the number of horizons. '1' is the variable shock variable, corresponding to the
+#'                    variable in the first column of \emph{data_set_df}.}
+#'
+#'\item{irf_lin_low}{A three 3D \link{array}() containing all lower confidence bands of the responses,
+#'                    based on robust standard errors by Newey and West (1987). Properties are equal to irf_lin_mean.}
+#'
+#'\item{irf_lin_up}{A three 3D \link{array}() containing all upper confidence bands of the responses,
+#'                    based on robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_lin_mean}.}
+#'
+#'\item{specs}{A list with properties of \emph{data_set_df} for the plot function.}
+#'
+#' @export
+#' @references
+#' Akaike, H. (1974). "A new look at the statistical model identification", \emph{IEEE Transactions on Automatic Control}, 19 (6): 716–723.
+#'
+#' Hurvich, C. M., and Tsai, C.-L. (1993) “A Corrected Akaike Information Criterion for
+#' Vector Autoregressive Model Selection.” \emph{Journal of Time Series Analysis}, 1993, 14(3):
+#' 271–79.
+#'
+#' Jordà, Ò. (2005). "Estimation and Inference of Impulse Responses by Local Projections."
+#' \emph{American Economic Review}, 95 (1): 161-182.
+#'
+#' Newey W.K., and West K.D. (1987). “A Simple, Positive-Definite, Heteroskedasticity and
+#' Autocorrelation Consistent Covariance Matrix.” \emph{Econometrica}, 55: 703–708.
+#'
+#' Schwarz, Gideon E. (1978). "Estimating the dimension of a model", \emph{Annals of Statistics}, 6 (2): 461–464.
+#'
+#' @author Philipp Adämmer
+#' @import foreach
+#' @examples
+#'\donttest{
+#'# Load package
+#'   library(lpirfs)
+#'
+#'# Load data
+#'   data_set_df <- interest_rules_var_data
+#'
+#'# Estimate linear model
+#'   results_lin <- lp_lin(data_set_df, lags_lin       = 4,
+#'                                      lags_criterion = NaN,
+#'                                      max_lags       = NaN,
+#'                                      trend          = 0L,
+#'                                      shock_type     = 1L,
+#'                                      confint        = 1.96,
+#'                                      hor            = 12)
+#'
+#'# Make plots
+#'   linear_plots <- plot_lin_irfs(results_lin)
+#'
+#'# Show single plots
+#'   linear_plots[[1]]
+#'   linear_plots[[2]]
+#'
+#'# Show all plots
+#'   library(ggpubr)
+#'   library(gridExtra)
+#'
+#'   lin_plots_all <- sapply(linear_plots, ggplotGrob)
+#'   marrangeGrob(lin_plots_all, nrow = ncol(data_set_df), ncol = ncol(data_set_df), top = NULL)
+#'
+#'  }
+lp_lin <- function(data_set_df, lags_lin = NULL, lags_criterion = NULL, max_lags = NULL,
+                                trend    = NULL, shock_type    = NULL,  confint  = NULL, hor = NULL){
+
+  # Create list to store inputs
+    specs <- list()
+
+  # Specify inputs
+    specs$lags_lin       <- lags_lin
+    specs$lags_criterion <- lags_criterion
+    specs$max_lags       <- max_lags
+    specs$trend          <- trend
+    specs$shock_type     <- shock_type
+    specs$confint        <- confint
+    specs$hor            <- hor
+
+  # Check whether data is a data.frame()
+  if(!(is.data.frame(data_set_df))){
+    stop('The data has to be a data.frame().')
+  }
+
+  # Check whether 'trend' is given
+  if(is.null(specs$trend)){
+    stop('Please specify whether and which type of trend to include.')
+  }
+
+  # Check whether 'shock_type' is given
+  if(is.null(specs$shock_type)){
+    stop('Please specify which type of shock to use.')
+  }
+
+  # Check whether width for confidence intervals is given
+  if(is.null(specs$confint)){
+    stop('Please specify a value for the width of the confidence bands.')
+  }
+
+  # Check whether number of horizons is given
+  if(is.null(specs$hor)){
+    stop('Please specify the number of horizons.')
+  }
+
+
+  # Check whether wrong lag length criterion is given
+  if(!(is.nan(specs$lags_criterion)          | specs$lags_criterion == 'AICc'|
+       specs$lags_criterion         == 'AIC' | specs$lags_criterion == 'BIC')){
+    stop('Possible lag length criteria are AICc, AIC or BIC or NaN if lag length is specified.')
+  }
+
+
+  # Check whether lags criterion and maximum number of lags are given
+  if((is.character(specs$lags_criterion)) &
+      (!is.na(specs$lags_lin))){
+     stop('You can not provide a lag criterion (AICc, AIC or BIC) and a fixed number of lags.')
+    }
+
+
+  # Check whether no lag length criterion and number of lags are given
+  if((is.na(specs$lags_criterion)) &
+      (is.na(specs$lags_lin))){
+    stop('You have to at least provide a lag criterion (AICc, AIC or BIC) or a fixed number of lags.')
+  }
+
+
+  # Check whether maximum number of lags is given for lag length criterion
+  if((is.character(specs$lags_criterion)) &
+     (is.na(specs$max_lags)            )){
+    stop('Please provide a maximum number of lags for the lag length criterion.')
+  }
+
+
+  # Check whether values for horizons are correct
+  if(!(specs$hor > 0) | is.nan(specs$hor) | !(specs$hor %% 1 == 0)){
+    stop('The number of horizons has to be an integer and > 0.')
+  }
+
+  # Check whether lags for linear model are integers
+  if(is.numeric(specs$lags_lin) & !is.nan(specs$lags_lin)){
+    if(!(specs$lags_lin %% 1 == 0)  | specs$lags_lin < 0){
+      stop('The numbers of lags have to be a positive integer.')
+    }
+  } else {}
+
+  # Check whether trend is correctly specified
+  if(!(specs$trend %in% c(0,1,2))){
+    stop('For trend please enter 0 = no trend, 1 = trend, 2 = trend and quadratic trend.')
+  }
+
+  # Check whether shock type is correctly specified
+  if(!(specs$shock_type %in% c(0,1))){
+    stop('The shock_type has to be 0 = standard deviation shock or 1 = unit shock.')
+  }
+
+
+  # Check whether width of confidence bands is >=0
+  if(!(specs$confint >=0)){
+    stop('The width of the confidence bands has to be >=0.')
+  }
+
+  # Check whether maximum lag length is given when no criterion is given
+    if(!is.character(specs$lags_criterion) & is.numeric(specs$max_lags) & !is.nan(specs$max_lags)){
+      stop('The maximum number of lags is only used if you provide a lag length criterion.')
+    }
+
+
+
+
+
+  # Safe data frame specifications in 'specs for functions
+   specs$starts         <- 1                        # Sample Start
+   specs$ends           <- dim(data_set_df)[1]      # Sample end
+   specs$columns        <- names(data_set_df)       # Name endogenous variables
+   specs$endog          <- ncol(data_set_df)        # Set the number of endogenous variables
+
+ # Construct (lagged) data
+  data_lin <- create_lin_data(specs, data_set_df)
+  y_lin    <- data_lin[[1]]
+  x_lin    <- data_lin[[2]]
+
+ # Construct shock matrix
+  d <- reduced_var(y_lin, x_lin, data_set_df, specs)
+
+ # Matrices to store OLS parameters
+  b1            <- matrix(NaN, specs$endog, specs$endog)
+  b1_low        <- matrix(NaN, specs$endog, specs$endog)
+  b1_up         <- matrix(NaN, specs$endog, specs$endog)
+
+ # Matrices to store irfs for each horizon
+  irf_mean  <-  matrix(NaN, specs$endog, specs$hor + 1)
+  irf_low   <-  irf_mean
+  irf_up    <-  irf_mean
+
+ # 3D Arrays for all irfs
+  irf_lin_mean  <-  array(NaN, dim = c(specs$endog, specs$hor + 1, specs$endog))
+  irf_lin_low   <-  irf_lin_mean
+  irf_lin_up    <-  irf_lin_mean
+
+ # Make cluster
+  numb_cores     <- min(specs$endog, parallel::detectCores() - 1)
+  cl             <- parallel::makeCluster(numb_cores)
+  doParallel::registerDoParallel(cl)
+
+ # Decide whether lag lengths are given or have to be estimated
+  if(is.nan(specs$lags_criterion) == TRUE){
+
+ # Loops to estimate local projections
+  lin_irfs <- foreach(s         = 1:specs$endog,
+                      .packages = 'lpirfs')  %dopar%{ # Accounts for the shocks
+
+   for (h in 1:(specs$hor)){   # Accounts for the horizons
+I
+    # Create data
+     yy  <-   y_lin[h : dim(y_lin)[1], ]
+     xx  <-   x_lin[1 : (dim(x_lin)[1] - h + 1), ]
+
+     for (k in 1:specs$endog){ # Accounts for the reactions of the endogenous variables
+
+      # Estimate coefficients and newey west std.err
+       nw_results     <- lpirfs::newey_west_c(yy[, k], xx, h)
+       b              <- nw_results[[1]]
+       std_err        <- sqrt(diag(nw_results[[2]]))*specs$confint
+
+      # Fill coefficient matrix
+       b1[k, ]        <-   b[2:(specs$endog + 1)]
+       b1_low[k, ]    <-   b[2:(specs$endog + 1)] - std_err[2:(specs$endog + 1)]
+       b1_up[k, ]     <-   b[2:(specs$endog + 1)] + std_err[2:(specs$endog + 1)]
+     }
+
+      # Fill matrices with local projections
+       irf_mean[, h + 1] <- t(b1     %*% d[ , s])
+       irf_low[,  h + 1] <- t(b1_low %*% d[ , s])
+       irf_up[,   h + 1] <- t(b1_up  %*% d[ , s])
+      }
+
+             # Return irfs
+            return(list(irf_mean,  irf_low,  irf_up))
+}
+
+ # Fill arrays with irfs
+  for(i in 1:specs$endog){
+
+    # Fill irfs
+    irf_lin_mean[, , i]   <- as.matrix(do.call(rbind, lin_irfs[[i]][1]))
+    irf_lin_low[, ,  i]   <- as.matrix(do.call(rbind, lin_irfs[[i]][2]))
+    irf_lin_up[, ,   i]   <- as.matrix(do.call(rbind, lin_irfs[[i]][3]))
+
+    # First value of is merely the shock
+    irf_lin_mean[, 1, i]   <- t(d[, i])
+    irf_lin_low[,  1, i]   <- irf_lin_mean[, 1, i]
+    irf_lin_up[,   1, i]   <- irf_lin_mean[, 1, i]
+
+  }
+
+################################################################################
+                               } else {
+################################################################################
+
+ # Convert chosen lag criterion to number for loop
+  lag_crit     <- switch(specs$lags_criterion,
+                                         'AICc'= 1,
+                                         'AIC' = 2,
+                                         'BIC' = 3)
+
+ # Loops to estimate local projections.
+  lin_irfs <- foreach(s          = 1:specs$endog,
+                     .packages   = 'lpirfs')  %dopar% {
+
+    for (h in 1:specs$hor){     # Accounts for the horizon
+
+      for (k in 1:specs$endog){ # Accounts for endogenous reactions
+
+        # Find optimal lags
+         val_criterion <- lpirfs::find_lag_c(y_lin, x_lin, lag_crit, h, k,
+                                                 specs$max_lags)
+
+        # Set optimal lag length
+         lag_choice  <- which.min(val_criterion)
+
+        # Extract matrices based on optimal lag length
+         yy <- y_lin[[lag_choice]][, k]
+         yy <- yy[h: length(yy)]
+
+         xx <- x_lin[[lag_choice]]
+         xx <- xx[1:(dim(xx)[1] - h + 1),]
+
+        # Estimate coefficients and newey west std.err
+         nw_results   <- lpirfs::newey_west_c(yy, xx, h)
+         b            <- nw_results[[1]]
+         std_err      <- sqrt(diag(nw_results[[2]]))*specs$confint
+
+        # Fill coefficient matrix
+         b1[k, ]      <-   b[2:(specs$endog + 1)]
+         b1_low[k, ]  <-   b[2:(specs$endog + 1)] - std_err[2:(specs$endog + 1)]
+         b1_up[k, ]   <-   b[2:(specs$endog + 1)] + std_err[2:(specs$endog + 1)]
+      }
+
+        # Fill matrices with local projections
+         irf_mean[, h + 1] <- t(b1     %*% d[ , s])
+         irf_low[,  h + 1] <- t(b1_low %*% d[ , s])
+         irf_up[,   h + 1] <- t(b1_up  %*% d[ , s])
+        }
+
+        list(irf_mean,  irf_low,  irf_up)
+    }
+
+    # Fill arrays with irfs
+    for(i in 1:specs$endog){
+
+      # Fill irfs
+      irf_lin_mean[, , i] <- as.matrix(do.call(rbind, lin_irfs[[i]][1]))
+      irf_lin_low[, ,  i] <- as.matrix(do.call(rbind, lin_irfs[[i]][2]))
+      irf_lin_up[, ,   i] <- as.matrix(do.call(rbind, lin_irfs[[i]][3]))
+
+      # First value of horizon is merely the shock
+      irf_lin_mean[, 1, i]   <- t(d[, i])
+      irf_lin_low[,  1, i]   <- irf_lin_mean[, 1, i]
+      irf_lin_up[,   1, i]   <- irf_lin_mean[, 1, i]
+
+    }
+
+
+    ###################################################################################################
+
+  }
+
+  # Close cluster
+  parallel::stopCluster(cl)
+
+  list(irf_lin_mean = irf_lin_mean, irf_lin_low = irf_lin_low,
+       irf_lin_up   = irf_lin_up, spes = specs)
+
+}

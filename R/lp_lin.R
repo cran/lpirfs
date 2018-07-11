@@ -36,7 +36,7 @@
 #' Akaike, H. (1974). "A new look at the statistical model identification", \emph{IEEE Transactions on Automatic Control}, 19 (6): 716–723.
 #'
 #' Hurvich, C. M., and Tsai, C.-L. (1993) “A Corrected Akaike Information Criterion for
-#' Vector Autoregressive Model Selection.” \emph{Journal of Time Series Analysis}, 1993, 14(3):
+#' Vector Autoregressive Model Selection.” \emph{Journal of Time Series Analysis}, 14(3):
 #' 271–79.
 #'
 #' Jordà, Ò. (2005). "Estimation and Inference of Impulse Responses by Local Projections."
@@ -184,9 +184,6 @@ lp_lin <- function(data_set_df, lags_lin = NULL, lags_criterion = NULL, max_lags
     }
 
 
-
-
-
   # Safe data frame specifications in 'specs for functions
    specs$starts         <- 1                        # Sample Start
    specs$ends           <- dim(data_set_df)[1]      # Sample end
@@ -199,7 +196,7 @@ lp_lin <- function(data_set_df, lags_lin = NULL, lags_criterion = NULL, max_lags
   x_lin    <- data_lin[[2]]
 
  # Construct shock matrix
-  d <- reduced_var(y_lin, x_lin, data_set_df, specs)
+  d <- get_mat_chol(y_lin, x_lin, data_set_df, specs)
 
  # Matrices to store OLS parameters
   b1            <- matrix(NaN, specs$endog, specs$endog)
@@ -237,7 +234,7 @@ I
      for (k in 1:specs$endog){ # Accounts for the reactions of the endogenous variables
 
       # Estimate coefficients and newey west std.err
-       nw_results     <- lpirfs::newey_west_c(yy[, k], xx, h)
+       nw_results     <- lpirfs::newey_west(yy[, k], xx, h)
        b              <- nw_results[[1]]
        std_err        <- sqrt(diag(nw_results[[2]]))*specs$confint
 
@@ -291,7 +288,7 @@ I
       for (k in 1:specs$endog){ # Accounts for endogenous reactions
 
         # Find optimal lags
-         val_criterion <- lpirfs::find_lag_c(y_lin, x_lin, lag_crit, h, k,
+         val_criterion <- lpirfs::get_vals_lagcrit(y_lin, x_lin, lag_crit, h, k,
                                                  specs$max_lags)
 
         # Set optimal lag length
@@ -305,7 +302,7 @@ I
          xx <- xx[1:(dim(xx)[1] - h + 1),]
 
         # Estimate coefficients and newey west std.err
-         nw_results   <- lpirfs::newey_west_c(yy, xx, h)
+         nw_results   <- lpirfs::newey_west(yy, xx, h)
          b            <- nw_results[[1]]
          std_err      <- sqrt(diag(nw_results[[2]]))*specs$confint
 

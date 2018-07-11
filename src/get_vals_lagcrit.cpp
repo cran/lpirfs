@@ -1,20 +1,24 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
-//' @name find_lag_c
-//' @title Compute optimal lag length
-//' @description Determine optimal lag length based on 'AICc', 'AIC', or 'BIC' criterion.
+//' @name get_vals_lagcrit
+//' @title Compute values for lag length criterion
+//' @description Compute values for 'AICc', 'AIC', or 'BIC'.
 //'
-//' @param y List with left (endogenous) variables
-//' @param x List with right (exogenous) variables
+//' @param y List with left (endogenous) variables.
+//' @param x List with right (exogenous) variables.
 //' @param lag_crit Integer: 'AICc'= 1, 'AIC' = 2, 'BIC' = 3.
+//' @param h Integer.
+//' @param k Integer.
+//' @param max_lags Integer.
+//' @keywords internal
 
 // [[Rcpp::export]]
-NumericVector find_lag_c(List y, List x, int lag_crit, int h, int k, int max_lags){
+NumericVector get_vals_lagcrit(List y, List x, int lag_crit, int h, int k, int max_lags){
 
   arma::mat xx, xx_one, yy, xpxi, emat, hhat;
   arma::vec w1, beta, resids, resds_sq;
-  int p, n, rstart_y, rend_y, rend_x;
-  double ssr, var_eps, ll;
+  int rstart_y, rend_y, rend_x;
+  double ssr, var_eps, ll, p, n;
   double pi = 3.141593;
   NumericVector crit_val(max_lags);
 

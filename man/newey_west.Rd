@@ -13,12 +13,16 @@ newey_west(y, x, h)
 
 \item{h}{Integer.}
 }
+\value{
+A list. The first element contains the estimated OLS parameters and the second element
+the covariance matrix of the parameters.
+}
 \description{
 Compute OLS parameters and robust standard errors based on Newey and West (1987).
 The function is based on the Matlab code by James P. LeSage.
 }
 \references{
-Newey W.K., and West K.D. (1987). “A Simple, Positive-Definite, Heteroskedasticity and
+Newey, W.K., and West, K.D. (1987). “A Simple, Positive-Definite, Heteroskedasticity and
 Autocorrelation Consistent Covariance Matrix.” \emph{Econometrica}, 55, 703–708.
 }
 \keyword{internal}

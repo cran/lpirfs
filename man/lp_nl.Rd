@@ -4,22 +4,23 @@
 \alias{lp_nl}
 \title{Compute nonlinear impulse responses}
 \usage{
-lp_nl(data_set_df, lags_lin = NULL, lags_nl = NULL, lags_criterion = NULL,
-  max_lags = NULL, trend = NULL, shock_type = NULL, confint = NULL,
-  hor = NULL, switching = NULL, hp_filter = NULL, lambda = NULL,
-  gamma = NULL)
+lp_nl(endog_data, lags_endog_lin = NULL, lags_endog_nl = NULL,
+  lags_criterion = NULL, max_lags = NULL, trend = NULL,
+  shock_type = NULL, confint = NULL, hor = NULL, switching = NULL,
+  use_hp = NULL, lambda = NULL, gamma = NULL, exog_data = NULL,
+  lags_exog = NULL, contemp_data = NULL, num_cores = NULL)
 }
 \arguments{
-\item{data_set_df}{A \link{data.frame}() containing all endogenous variables for the VAR. The column order
+\item{endog_data}{A \link{data.frame}, containing all endogenous variables for the VAR. The column order
 is used for the Cholesky decomposition.}
 
-\item{lags_lin}{NaN or integer. NaN if lag length criterion is used.
+\item{lags_endog_lin}{NaN or integer. NaN if lag length criterion is used.
 Integer for number of lags for linear VAR to identify shock.}
 
-\item{lags_nl}{NaN or integer. Number of lags for nonlinear VAR (if \emph{lags_criterion} = NaN). NaN if lag length criterion is given.}
+\item{lags_endog_nl}{NaN or integer. Number of lags for nonlinear VAR. NaN if lag length criterion is given.}
 
 \item{lags_criterion}{NaN or character. NaN means that the number of lags
-will be given at \emph{lags_nl} and \emph{lags_lin}. The lag length criteria are 'AICc', 'AIC' and 'BIC'.}
+will be given at \emph{lags_endog_nl} and \emph{lags_endog_lin}. The lag length criteria are 'AICc', 'AIC' and 'BIC'.}
 
 \item{max_lags}{NaN or integer. Maximum number of lags (if \emph{lags_criterion} = 'AICc', 'AIC', 'BIC'). NaN otherwise.}
 
@@ -31,86 +32,110 @@ will be given at \emph{lags_nl} and \emph{lags_lin}. The lag length criteria are
 
 \item{hor}{Integer. Number of horizons for impulse responses.}
 
-\item{switching}{Numeric vector. A column vector with the same length as \emph{data_set_df}. This series can either
+\item{switching}{Numeric vector. A column vector with the same length as \emph{endog_data}. This series can either
 be decomposed via the Hodrick-Prescott filter (see Auerbach and Gorodnichenko, 2013) or
 directly plugged into the following smooth transition function:
-\deqn{ F_{z_t} = \frac{exp(-\gamma z_t)}{1 + exp(-\gamma z_t)} }
-Warning: \eqn{F_{z_t}} will be lagged in \link{create_nl_data} by one and then multiplied with the data.
+\deqn{ F_{z_t} = \frac{exp(-\gamma z_t)}{1 + exp(-\gamma z_t)}. }
+Warning: \eqn{F_{z_t}} will be lagged by one and then multiplied with the data.
 If the variable shall not be lagged, the vector has to be given with a lead of one.
 The data for the two regimes are: \cr
-Regime 1 = (1-\eqn{F(z_{t-1})})*y_{t-p}, \cr
-Regime 2 = \eqn{F(z_{t-1})}*y_{t-p}.}
+Regime 1 = (1-\eqn{F(z_{t-1})})*y_{(t-p)}, \cr
+Regime 2 = \eqn{F(z_{t-1})}*y_{(t-p)}.}
 
-\item{hp_filter}{Integer. No HP-filter = 0. Use HP-filter = 1.}
+\item{use_hp}{Boolean. Use HP-filter? TRUE or FALSE.}
 
-\item{lambda}{Double. Value of \eqn{\lambda} for the Hodrick-Prescott filter if HP-filter is applied.}
+\item{lambda}{Double. Value of \eqn{\lambda} for the Hodrick-Prescott filter (if use_hp = TRUE).}
 
 \item{gamma}{Double. Positive number which is used in the transition function.}
+
+\item{exog_data}{A \link{data.frame}, containing exogenous variables for the VAR. The row length has to be the same as \emph{endog_data}.
+Lag lengths for exogenous variables have to be given and will no be determined via a lag length criterion.}
+
+\item{lags_exog}{Integer. Number of lags for the exogenous variables.}
+
+\item{contemp_data}{A \link{data.frame}, containing exogenous data with contemporaneous impact. This data will not be lagged.
+The row length has to be the same as \emph{endog_data}.}
+
+\item{num_cores}{Integer. The number of cores to use for the estimation. If NULL, the function will
+use the maximum number of cores minus one.}
 }
 \value{
-A list with impulse responses and their robust confidence bands.
-It also contains a list named \emph{specs} with properties of \emph{data_set_df} for the plot function.
+A list containing:
 
-\item{irf_s1_mean}{A three 3D \link{array}() containing all impulse responses for all endogenous variables of the first state.
+\item{irf_s1_mean}{A three 3D \link{array}, containing all impulse responses for all endogenous variables of the first state.
                    The last dimension denotes the shock variable. The row in each matrix
-                   denotes the responses of the \emph{ith} variable, ordered as in \emph{data_set_df}. The columns are the horizons.
+                   denotes the responses of the \emph{ith} variable, ordered as in \emph{endog_data}. The columns are the horizons.
                    For example, if the results are saved in \emph{results_nl}, results_nl$irf_s1_mean[, , 1] returns a KXH matrix,
                    where K is the number of variables and H the number of horizons. '1' is the shock variable, corresponding to the
-                   variable in the first column of \emph{data_set_df}.}
+                   variable in the first column of \emph{endog_data}.}
 
-\item{irf_s1_low}{A three 3D \link{array}() containing all lower confidence bands of the impulse responses, based on
+\item{irf_s1_low}{A three 3D \link{array}, containing all lower confidence bands of the impulse responses, based on
                    robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_s1_mean}.}
 
-\item{irf_s1_up}{A three 3D \link{array}() containing all upper confidence bands of the impulse responses, based on
+\item{irf_s1_up}{A three 3D \link{array}, containing all upper confidence bands of the impulse responses, based on
                    robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_s1_mean}.}
 
-\item{irf_s2_mean}{A three 3D \link{array}() containing all impulse responses for all endogenous variables of the second state.
+\item{irf_s2_mean}{A three 3D \link{array}, containing all impulse responses for all endogenous variables of the second state.
                    The last dimension denotes the shock variable. The row in each matrix
-                   denotes the responses of the \emph{ith} variable, ordered as in data_set_df. The columns denote the horizon.
+                   denotes the responses of the \emph{ith} variable, ordered as in endog_data. The columns denote the horizon.
                    For example, if the results are saved in \emph{results_nl}, results_nl$irf_s2_mean[, , 1] returns a KXH matrix,
                    where K is the number of variables and H the number of horizons. '1' is the first shock variable corresponding to the
-                   variable in the first column of \emph{data_set_df}.}
+                   variable in the first column of \emph{endog_data}.}
 
-\item{irf_s2_low}{A three 3D \link{array}() containing all lower confidence bands of the responses,
+\item{irf_s2_low}{A three 3D \link{array}, containing all lower confidence bands of the responses,
                    based on robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_s2_mean}.}
 
-\item{irf_s2_up}{A three 3D \link{array}(), containing all upper confidence bands of the responses, based on
+\item{irf_s2_up}{A three 3D \link{array}, containing all upper confidence bands of the responses, based on
                    robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_s2_mean}.}
 
-\item{specs}{A list with properties of \emph{data_set_df} for the plot function.}
+\item{specs}{A list with properties of \emph{endog_data} for the plot function. It also contains
+            lagged data (y_nl and x_nl) used for the irf estimations.}
 
 \item{fz}{A vector containing the values of the transition function F(z_{t-1}).}
 }
 \description{
 Compute nonlinear impulse responses with local projections by Jordà (2005). The
-data are separated into two states via a smooth transition function, applied in Auerbach and Gorodnichenko (2012).
+data are separated into two states via a smooth transition function as in Auerbach and Gorodnichenko (2012).
 }
 \examples{
 \donttest{
+
+                  ## Example without exogenous variables ##
+
 # Load package
   library(lpirfs)
 
-# Load data
-  data_set_df <- monetary_var_data
+# Load (endogenous) data
+  endog_data <- interest_rules_var_data
+
+# Choose data for switching variable (here Federal Funds Rate)
+# Important: The switching variable does not have to be used within the VAR!
+ switching_data <-  endog_data$Infl
 
 # Estimate model and save results
-  results_nl <- lp_nl(data_set_df, lags_lin       = 4L,
-                                   lags_nl        = 3L,
-                                   lags_criterion = NaN,
-                                   max_lags       = NaN,
-                                   trend          = 0L,
-                                   shock_type     = 1L,
-                                   confint        = 1.96,
-                                   hor            = 24L,
-                                   switching      = data_set_df$FF,
-                                   hp_filter      = 1L,
-                                   lambda         = 1600,
-                                   gamma          = 3)
+  results_nl    <- lp_nl(endog_data,
+                                lags_endog_lin  = 4,
+                                lags_endog_nl   = 3,
+                                lags_criterion  = NaN,
+                                max_lags        = NaN,
+                                trend           = 0,
+                                shock_type      = 1,
+                                confint         = 1.96,
+                                hor             = 24,
+                                switching       = switching_data,
+                                use_hp          = TRUE,
+                                lambda          = 1600,
+                                gamma           = 3,
+                                exog_data       = NULL,
+                                lags_exog       = NULL,
+                                contemp_data    = NULL,
+                                num_cores       = NULL)
 
 # Make and save all plots
-  nl_plots <- plot_nl_irfs(results_nl)
+  nl_plots <- plot_nl(results_nl)
 
-# Show all plots
+# Show all impulse responses by using 'ggpubr' and 'gridExtra'
+# The package does not depend on those packages so they have to be installed
   library(ggpubr)
   library(gridExtra)
 
@@ -123,8 +148,61 @@ data are separated into two states via a smooth transition function, applied in 
   plot(s2_plots[[1]])
 
 # Show all plots
-  marrangeGrob(s1_plots, nrow = ncol(data_set_df), ncol = ncol(data_set_df), top = NULL)
-  marrangeGrob(s2_plots, nrow = ncol(data_set_df), ncol = ncol(data_set_df), top = NULL)
+  marrangeGrob(s1_plots, nrow = ncol(endog_data), ncol = ncol(endog_data), top = NULL)
+  marrangeGrob(s2_plots, nrow = ncol(endog_data), ncol = ncol(endog_data), top = NULL)
+
+
+                     ## Example with exogenous variables ##
+
+# Load (endogenous) data
+  endog_data <- interest_rules_var_data
+
+# Choose data for switching variable (here Federal Funds Rate)
+# Important: The switching variable does not have to be used within the VAR!
+ switching_data <-  endog_data$FF
+
+# Create exogenous data and data with contemporaneous impact (for illustration purposes only)
+ exog_data    <- endog_data$GDP_gap*endog_data$Infl*endog_data$FF + rnorm(dim(endog_data)[1])
+ contemp_data <- endog_data$GDP_gap*endog_data$Infl*endog_data$FF + rnorm(dim(endog_data)[1])
+
+# Exogenous data has to be a data.frame
+ exog_data    <- data.frame(xx  = exog_data)
+ contemp_data <- data.frame(cc  = contemp_data)
+
+# Estimate model and save results
+ results_nl <- lp_nl(endog_data,
+                          lags_endog_lin  = 4,
+                          lags_endog_nl   = 3,
+                          lags_criterion  = NaN,
+                          max_lags        = NaN,
+                          trend           = 0,
+                          shock_type      = 1,
+                          confint         = 1.96,
+                          hor             = 24,
+                          switching       = switching_data,
+                          use_hp          = TRUE,
+                          lambda          = 1600, # Ravn and Uhlig (2002):
+                                                  # Anuual data    = 6.25
+                                                  # Quarterly data = 1600
+                                                  # Monthly data   = 129 600
+                          gamma           = 3,
+                          exog_data       = exog_data,
+                          lags_exog       = 3,
+                          contemp_data    = NULL,
+                          num_cores       = NULL)
+
+# Make and save all plots
+  nl_plots <- plot_nl(results_nl)
+
+# Save plots based on states
+  s1_plots <- sapply(nl_plots$gg_s1, ggplotGrob)
+  s2_plots <- sapply(nl_plots$gg_s2, ggplotGrob)
+
+# Show all plots
+  marrangeGrob(s1_plots, nrow = ncol(endog_data), ncol = ncol(endog_data), top = NULL)
+  marrangeGrob(s2_plots, nrow = ncol(endog_data), ncol = ncol(endog_data), top = NULL)
+
+
 
 }
 }
@@ -135,19 +213,24 @@ Auerbach, A. J., and  Gorodnichenko Y. (2012). "Measuring the Output Responses t
 \emph{American Economic Journal: Economic Policy}, 4 (2): 1-27.
 
 Auerbach, A. J., and Gorodnichenko Y. (2013). "Fiscal Multipliers in Recession and Expansion."
-\emph{NBER Working Paper Series}. Nr 17447.
+\emph{NBER Working Paper Series}. Nr. 17447.
 
-Hurvich, C. M., and Tsai, C.-L. (1993) “A Corrected Akaike Information Criterion for
-Vector Autoregressive Model Selection.” \emph{Journal of Time Series Analysis}, 1993, 14(3):
-271–79.
+Hurvich, C. M., and Tsai, C.-L. (1989), "Regression and time series model selection in small samples",
+\emph{Biometrika}, 76(2): 297–307
 
 Jordà, Ò. (2005) "Estimation and Inference of Impulse Responses by Local Projections."
 \emph{American Economic Review}, 95 (1): 161-182.
 
-Newey W.K., and West K.D. (1987). “A Simple, Positive-Definite, Heteroskedasticity and
+Newey, W.K., and West, K.D. (1987). “A Simple, Positive-Definite, Heteroskedasticity and
 Autocorrelation Consistent Covariance Matrix.” \emph{Econometrica}, 55, 703–708.
 
 Schwarz, Gideon E. (1978). "Estimating the dimension of a model", \emph{Annals of Statistics}, 6 (2): 461–464.
+
+Ravn, M.O., Uhlig, H. (2002). "On Adjusting the Hodrick-Prescott Filter for the Frequency of Observations."
+\emph{Review of Economics and Statistics}, 84(2), 371-376.
+}
+\seealso{
+\url{https://adaemmerp.github.io/lpirfs/README_docs.html}
 }
 \author{
 Philipp Adämmer

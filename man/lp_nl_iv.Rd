@@ -2,33 +2,34 @@
 % Please edit documentation in R/lp_nl_iv.R
 \name{lp_nl_iv}
 \alias{lp_nl_iv}
-\title{Compute nonlinear impulse responses with with identified shock (instrument variable approach)}
+\title{Compute nonlinear impulse responses with identified shock}
 \usage{
-lp_nl_iv(endog_data, lags_endog_nl = NULL, instr = NULL,
-  exog_data = NULL, lags_exog = NULL, contemp_data = NULL,
-  lags_criterion = NULL, max_lags = NULL, trend = NULL,
-  confint = NULL, hor = NULL, switching = NULL, use_hp = NULL,
-  lambda = NULL, gamma = NULL, num_cores = NULL)
+lp_nl_iv(endog_data, lags_endog_nl = NULL, shock = NULL,
+  instr = NULL, exog_data = NULL, lags_exog = NULL,
+  contemp_data = NULL, lags_criterion = NULL, max_lags = NULL,
+  trend = NULL, confint = NULL, hor = NULL, switching = NULL,
+  use_hp = NULL, lambda = NULL, gamma = NULL, num_cores = NULL)
 }
 \arguments{
-\item{endog_data}{A \link{data.frame}, containing all endogenous variables for the VAR. The column order
-is used for the Cholesky decomposition.}
+\item{endog_data}{A \link{data.frame}, containing all endogenous variables for the VAR.}
 
-\item{lags_endog_nl}{NaN or integer. Number of lags for nonlinear VAR. NaN if lag length criterion is given.}
+\item{lags_endog_nl}{NaN or integer. NaN if lags are chosen by a lag length criterion. Integer for number of lags for \emph{endog_data}.}
 
-\item{instr}{One column \link{data.frame}, including the instrument to shock with.
+\item{shock}{One column \link{data.frame}, including the instrument to shock with.
 The row length has to be the same as \emph{endog_data}.}
 
-\item{exog_data}{A \link{data.frame}, containing exogenous variables for the VAR. The row length has to be the same as \emph{endog_data}.
+\item{instr}{Deprecated input name. Use \emph{shock} instead. See \emph{shock} for details.}
+
+\item{exog_data}{A \link{data.frame}, containing exogenous variables. The row length has to be the same as \emph{endog_data}.
 Lag lengths for exogenous variables have to be given and will no be determined via a lag length criterion.}
 
-\item{lags_exog}{Null or an integer, indicating the number of lags for exogenous data.}
+\item{lags_exog}{NULL or Integer. Integer for the number of lags for the exogenous data.}
 
 \item{contemp_data}{A \link{data.frame}, containing exogenous data with contemporaneous impact. This data will not be lagged.
 The row length has to be the same as \emph{endog_data}.}
 
 \item{lags_criterion}{NaN or character. NaN means that the number of lags
-will be given at \emph{lags_endog_nl} and \emph{lags_lin}. The lag length criteria are 'AICc', 'AIC' and 'BIC'.}
+will be given at \emph{lags_endog_nl}. Possible lag length criteria are 'AICc', 'AIC' or 'BIC'.}
 
 \item{max_lags}{NaN or integer. Maximum number of lags (if \emph{lags_criterion} = 'AICc', 'AIC', 'BIC'). NaN otherwise.}
 
@@ -42,7 +43,7 @@ will be given at \emph{lags_endog_nl} and \emph{lags_lin}. The lag length criter
 be decomposed via the Hodrick-Prescott filter (see Auerbach and Gorodnichenko, 2013) or
 directly plugged into the following smooth transition function:
 \deqn{ F_{z_t} = \frac{exp(-\gamma z_t)}{1 + exp(-\gamma z_t)}. }
-Warning: \eqn{F_{z_t}} will be lagged in \link{create_nl_data} by one and then multiplied with the data.
+Warning: \eqn{F_{z_t}} will be lagged by one and then multiplied with the data.
 If the variable shall not be lagged, the vector has to be given with a lead of one.
 The data for the two regimes are: \cr
 Regime 1 = (1-\eqn{F(z_{t-1})})*y_{(t-p)}, \cr
@@ -60,37 +61,37 @@ use the maximum number of cores minus one.}
 \value{
 A list containing:
 
-\item{irf_s1_mean}{A \link{matrix} containing the impulse responses of the first regime.
+\item{irf_s1_mean}{A \link{matrix}, containing the impulse responses of the first regime.
                    The row in each matrix denotes the responses of the \emph{ith}
-                   variable to the instrument shock. The columns are the horizons.}
+                   variable to the shock. The columns are the horizons.}
 
-\item{irf_s1_low}{A \link{matrix} containing all lower confidence bands of
+\item{irf_s1_low}{A \link{matrix}, containing all lower confidence bands of
                    the impulse responses, based on robust standard errors by Newey and West (1987).
                    Properties are equal to \emph{irf_s1_mean}.}
 
-\item{irf_s1_up}{A \link{matrix} containing all upper confidence bands of the
+\item{irf_s1_up}{A \link{matrix}, containing all upper confidence bands of the
                    impulse responses, based on robust standard errors by Newey and West (1987).
                    Properties are equal to \emph{irf_s1_mean}.}
 
-\item{irf_s2_mean}{A \link{matrix} containing all impulse responses for the second regime.
+\item{irf_s2_mean}{A \link{matrix}, containing all impulse responses for the second regime.
                    The row in each matrix denotes the responses of the \emph{ith} variable to the shock.
                    The columns denote the horizon.}
 
-\item{irf_s2_low}{A three \link{matrix} containing all lower confidence bands of the responses,
+\item{irf_s2_low}{A \link{matrix}, containing all lower confidence bands of the responses,
                    based on robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_s2_mean}.}
 
-\item{irf_s2_up}{A three \link{matrix}, containing all upper confidence bands of the responses, based on
+\item{irf_s2_up}{A \link{matrix}, containing all upper confidence bands of the responses, based on
                    robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_s2_mean}.}
 
 \item{specs}{A list with properties of \emph{endog_data} for the plot function. It also contains
-            lagged data (y_nl and x_nl) used for the estimations of the irfs.}
+            lagged data (y_nl and x_nl) used for the estimations of the impulse responses.}
 
-\item{fz}{A vector containing the values of the transition function F(z_{t-1}).}
+\item{fz}{A vector, containing the values of the transition function F(z_{t-1}).}
 }
 \description{
-Compute nonlinear impulse responses with local projections and identified shock, i.e.
-instrument variable approach (see e.g. Jordà et al., 2015; and Ramey and Zubairy, 2018). The data are separated into two states via a smooth transition
-function as in Auerbach and Gorodnichenko (2012).
+Compute nonlinear impulse responses with local projections and identified shock.
+The data are separated into two states via a smooth transition
+function as applied in Auerbach and Gorodnichenko (2012).
 }
 \examples{
 \donttest{
@@ -118,7 +119,7 @@ function as in Auerbach and Gorodnichenko (2012).
 # Estimate local projections
  results_nl_iv <- lp_nl_iv(endog_data,
                            lags_endog_nl     = 3,
-                           instr             = shock,
+                           shock             = shock,
                            exog_data         = exog_data,
                            lags_exog         = 4,
                            contemp_data      = NULL,
@@ -169,6 +170,10 @@ Auerbach, A. J., and  Gorodnichenko Y. (2012). "Measuring the Output Responses t
 
 Auerbach, A. J., and Gorodnichenko Y. (2013). "Fiscal Multipliers in Recession and Expansion."
 \emph{NBER Working Paper Series}. Nr 17447.
+
+Blanchard, O., and Perotti, R. (2002). “An Empirical Characterization of the
+Dynamic Effects of Changes in Government Spending and Taxes on Output.” \emph{Quarterly
+Journal of Economics}, 117(4): 1329–1368.
 
 Hurvich, C. M., and Tsai, C.-L. (1989), "Regression and time series model selection in small samples",
 \emph{Biometrika}, 76(2): 297–307

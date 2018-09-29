@@ -2,22 +2,30 @@
 % Please edit documentation in R/lp_lin_iv.R
 \name{lp_lin_iv}
 \alias{lp_lin_iv}
-\title{Compute linear impulse responses with identified shock (instrument variable approach)}
+\title{Compute linear impulse responses with identified shock and/or with 2SLS}
 \usage{
-lp_lin_iv(endog_data, instr = NULL, lags_endog_lin = NULL,
-  exog_data = NULL, lags_exog = NULL, contemp_data = NULL,
-  lags_criterion = NaN, max_lags = NaN, trend = NULL,
-  confint = NULL, hor = NULL, num_cores = NULL)
+lp_lin_iv(endog_data, shock = NULL, instr = NULL, twosls = FALSE,
+  instrum = NULL, lags_endog_lin = NULL, exog_data = NULL,
+  lags_exog = NULL, contemp_data = NULL, lags_criterion = NaN,
+  max_lags = NaN, trend = NULL, confint = NULL, hor = NULL,
+  num_cores = NULL)
 }
 \arguments{
-\item{endog_data}{A \link{data.frame}, containing the dependent variables.}
+\item{endog_data}{A \link{data.frame}, containing the values of the dependent variable(s).}
 
-\item{instr}{One column \link{data.frame} including the values of the instrument to shock with.
-The row length has to be the same as \emph{endog_data}.}
+\item{shock}{A one column \link{data.frame}, including the variable to shock with. The row length has to be the same as \emph{endog_data}.
+When \emph{twosls = TRUE}, this variable will be approximated/regressed on the instrument variable(s) given in \emph{instrum}.}
 
-\item{lags_endog_lin}{NaN or integer. NaN if lags are chosen by lag length criterion. Integer for number of lags for \emph{endog_data}.}
+\item{instr}{Deprecated input name. Use \emph{shock} instead. See \emph{shock} for details.}
 
-\item{exog_data}{A \link{data.frame}, containing exogenous variables for the VAR. The row length has to be the same as \emph{endog_data}.
+\item{twosls}{Use two stage least squares? TRUE or FALSE.}
+
+\item{instrum}{A \link{data.frame}, containing the instrument(s) to use for 2SLS. This instrument will be used for the
+variable in \emph{shock}.}
+
+\item{lags_endog_lin}{NaN or integer. NaN if lags are chosen by a lag length criterion. Integer for number of lags for \emph{endog_data}.}
+
+\item{exog_data}{A \link{data.frame}, containing exogenous variables. The row length has to be the same as \emph{endog_data}.
 Lag lengths for exogenous variables have to be given and will no be determined via a lag length criterion.}
 
 \item{lags_exog}{NULL or Integer. Integer for the number of lags for the exogenous data.}
@@ -26,13 +34,14 @@ Lag lengths for exogenous variables have to be given and will no be determined v
 The row length has to be the same as \emph{endog_data}.}
 
 \item{lags_criterion}{NaN or character. NaN means that the number of lags
-will be given at \emph{lags_endog_lin}. The character refers to the corresponding lag length criterion ('AICc', 'AIC' or 'BIC').}
+will be given at \emph{lags_endog_lin}. Possible lag length criteria are 'AICc', 'AIC' or 'BIC'.
+Note that when \emph{twosls = TRUE}, the lag lengths are chosen based on normal OLS regressions, without using the instruments.}
 
-\item{max_lags}{NaN or integer. Maximum number of lags if \emph{lags_criterion} is character with lag length criterion. NaN otherwise.}
+\item{max_lags}{NaN or integer. Maximum number of lags if \emph{lags_criterion} is a character denoting the lag length criterion. NaN otherwise.}
 
 \item{trend}{Integer. No trend =  0 , include trend = 1, include trend and quadratic trend = 2.}
 
-\item{confint}{Double. Width of confidence bands. 68\% = 1, 90\% = 1.65, 95\% = 1.96.}
+\item{confint}{Double. Width of confidence bands. 68\% = 1; 90\% = 1.65; 95\% = 1.96.}
 
 \item{hor}{Integer. Number of horizons for impulse responses.}
 
@@ -44,30 +53,29 @@ A list containing:
 
 
 
-\item{irf_lin_mean}{A \link{matrix} containing the impulse responses.
+\item{irf_lin_mean}{A \link{matrix}, containing the impulse responses.
                    The row in each matrix denotes the response of the \emph{ith}
-                   variable to the (instrument) shock. The columns are the horizons.}
+                   variable to the shock. The columns are the horizons.}
 
-\item{irf_lin_low}{A \link{matrix} containing all lower confidence bands of
+\item{irf_lin_low}{A \link{matrix}, containing all lower confidence bands of
                    the impulse responses, based on robust standard errors by Newey and West (1987).
                    Properties are equal to \emph{irf_lin_mean}.}
 
-\item{irf_lin_up}{A \link{matrix} containing all upper confidence bands of
+\item{irf_lin_up}{A \link{matrix}, containing all upper confidence bands of
                    the impulse responses, based on robust standard errors by Newey and West (1987).
                    Properties are equal to \emph{irf_lin_mean}.}
 
 \item{specs}{A list with properties of \emph{endog_data} for the plot function. It also contains
-            lagged data (y_lin and x_lin) used for the estimations of the irfs.}
+            lagged data (y_lin and x_lin) used for the estimations of the impulse responses.}
 }
 \description{
-Compute linear impulse responses with local projections and identified shock, i.e.
-instrument variable approach (see e.g. Jordà et al., 2015; and Ramey and Zubairy, 2018).
+Compute linear impulse responses with identified shock and/or with 2SLS.
 }
 \examples{
 \donttest{
 
 # This example replicates a result from the Supplementary Appendix
-# by Ramey and Zubairy (2018) (RZ-18).
+# by Ramey and Zubairy (2018) (RZ-18)
 
 # Load data
  ag_data       <- ag_data
@@ -77,13 +85,14 @@ instrument variable approach (see e.g. Jordà et al., 2015; and Ramey and Zubair
 # Endogenous data
  endog_data    <- ag_data[sample_start:sample_end,3:5]
 
-# Shock ('Instrument')
+# Variable to shock with. Here government spending due to
+# Blanchard and Perotti (2002) framework
  shock         <- ag_data[sample_start:sample_end, 3]
 
 # Estimate linear model
  results_lin_iv <- lp_lin_iv(endog_data,
                                lags_endog_lin = 4,
-                               instr          = shock,
+                               shock          = shock,
                                exog_data      = NULL,
                                lags_exog      = NULL,
                                contemp_data   = NULL,
@@ -99,9 +108,9 @@ instrument variable approach (see e.g. Jordà et al., 2015; and Ramey and Zubair
  iv_lin_plots    <- plot_lin(results_lin_iv)
 
 # * The first element of 'iv_lin_plots' shows the response of the first
-#   variable (Gov) to the chosen (instrument-)shock (here Gov).
+#   variable (Gov) to the  shock (Gov).
 # * The second element of 'iv_lin_plots' shows the response of the second
-#   variable (Tax) to the chosen (instrument-)shock (Gov).
+#   variable (Tax) to the shock (Gov).
 # * ...
 
 # This plot replicates the left plot in the mid-panel of Figure 12 in the
@@ -109,20 +118,102 @@ instrument variable approach (see e.g. Jordà et al., 2015; and Ramey and Zubair
  iv_lin_plots[[1]]
 
 # Show all impulse responses by using 'ggpubr' and 'gridExtra'
-# The package does not depend on those packages so they have to be installed
+# lpirfs does not depend on those packages so they have to be installed
  library(ggpubr)
  library(gridExtra)
 
  lin_plots_all <- sapply(iv_lin_plots, ggplotGrob)
  marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = 1, top = NULL)
 
+
+## Add lags of the identified shock ##
+
+# Endogenous data but now exclude government spending
+ endog_data    <- ag_data[sample_start:sample_end, 4:5]
+
+# Variable to shock with (government spending)
+ shock         <- ag_data[sample_start:sample_end, 3]
+
+# Add the shock variable to exogenous data
+ exog_data     <- shock
+
+# Estimate linear model with lagged shock variable
+ results_lin_iv <- lp_lin_iv(endog_data,
+                               lags_endog_lin = 4,
+                               shock          = shock,
+                               exog_data      = exog_data,
+                               lags_exog      = 2,
+                               contemp_data   = NULL,
+                               lags_criterion = NaN,
+                               max_lags       = NaN,
+                               trend          = 0,
+                               confint        = 1.96,
+                               hor            = 20,
+                               num_cores      = NULL)
+
+
+# Make and save plots
+ iv_lin_plots    <- plot_lin(results_lin_iv)
+ lin_plots_all   <- sapply(iv_lin_plots, ggplotGrob)
+ marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = 1, top = NULL)
+
+
+##############################################################################
+#####                         Use 2SLS                               #########
+##############################################################################
+
+# Set seed
+ set.seed(007)
+
+# Load data
+ ag_data       <- ag_data
+ sample_start  <- 7
+ sample_end    <- dim(ag_data)[1]
+
+# Endogenous data
+ endog_data    <- ag_data[sample_start:sample_end,3:5]
+
+# Variable to shock with (government spending)
+ shock         <- ag_data[sample_start:sample_end, 3]
+
+# Generate instrument variable that is correlated with government spending
+ instrum       <- as.data.frame(0.9*shock$Gov + rnorm(length(shock$Gov), 0, 0.02) )
+
+# Estimate linear model via SLS
+ results_lin_iv <- lp_lin_iv(endog_data,
+                            lags_endog_lin = 4,
+                            shock          = shock,
+                            instrum        = instrum,
+                            twosls         = TRUE,
+                            exog_data      = NULL,
+                            lags_exog      = NULL,
+                            contemp_data   = NULL,
+                            lags_criterion = NaN,
+                            max_lags       = NaN,
+                            trend          = 0,
+                            confint        = 1.96,
+                            hor            = 20,
+                            num_cores      = NULL)
+
+# Create all plots
+ iv_lin_plots    <- plot_lin(results_lin_iv)
+
+
+# Show response of GDP
+ iv_lin_plots[[3]]
 }
+
+
 }
 \references{
 Akaike, H. (1974). "A new look at the statistical model identification", \emph{IEEE Transactions on Automatic Control}, 19 (6): 716–723.
 
-Auerbach, A. J., and  Gorodnichenko Y. (2012). "Measuring the Output Responses to Fiscal Policy."
+Auerbach, A. J., and  Gorodnichenko, Y. (2012). "Measuring the Output Responses to Fiscal Policy."
 \emph{American Economic Journal: Economic Policy}, 4 (2): 1-27.
+
+Blanchard, O., and Perotti, R. (2002). “An Empirical Characterization of the
+Dynamic Effects of Changes in Government Spending and Taxes on Output.” \emph{Quarterly
+Journal of Economics}, 117(4): 1329–1368.
 
 Hurvich, C. M., and  Tsai, C.-L. (1989), "Regression and time series model selection in small samples",
 \emph{Biometrika}, 76(2): 297–307

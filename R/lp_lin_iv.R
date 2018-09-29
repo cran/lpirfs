@@ -1,21 +1,25 @@
 #' @name lp_lin_iv
-#' @title Compute linear impulse responses with identified shock (instrument variable approach)
-#' @description Compute linear impulse responses with local projections and identified shock, i.e.
-#' instrument variable approach (see e.g. Jordà et al., 2015; and Ramey and Zubairy, 2018).
-#' @param endog_data A \link{data.frame}, containing the dependent variables.
-#' @param instr One column \link{data.frame} including the values of the instrument to shock with.
-#' The row length has to be the same as \emph{endog_data}.
-#' @param lags_endog_lin NaN or integer. NaN if lags are chosen by lag length criterion. Integer for number of lags for \emph{endog_data}.
-#' @param exog_data A \link{data.frame}, containing exogenous variables for the VAR. The row length has to be the same as \emph{endog_data}.
+#' @title Compute linear impulse responses with identified shock and/or with 2SLS
+#' @description Compute linear impulse responses with identified shock and/or with 2SLS.
+#' @param endog_data A \link{data.frame}, containing the values of the dependent variable(s).
+#' @param shock A one column \link{data.frame}, including the variable to shock with. The row length has to be the same as \emph{endog_data}.
+#' When \emph{twosls = TRUE}, this variable will be approximated/regressed on the instrument variable(s) given in \emph{instrum}.
+#' @param instr Deprecated input name. Use \emph{shock} instead. See \emph{shock} for details.
+#' @param twosls Use two stage least squares? TRUE or FALSE.
+#' @param instrum A \link{data.frame}, containing the instrument(s) to use for 2SLS. This instrument will be used for the
+#'  variable in \emph{shock}.
+#' @param lags_endog_lin NaN or integer. NaN if lags are chosen by a lag length criterion. Integer for number of lags for \emph{endog_data}.
+#' @param exog_data A \link{data.frame}, containing exogenous variables. The row length has to be the same as \emph{endog_data}.
 #'                  Lag lengths for exogenous variables have to be given and will no be determined via a lag length criterion.
 #' @param lags_exog NULL or Integer. Integer for the number of lags for the exogenous data.
 #' @param contemp_data A \link{data.frame}, containing exogenous data with contemporaneous impact.
 #'                      The row length has to be the same as \emph{endog_data}.
 #' @param lags_criterion NaN or character. NaN means that the number of lags
-#'         will be given at \emph{lags_endog_lin}. The character refers to the corresponding lag length criterion ('AICc', 'AIC' or 'BIC').
-#' @param max_lags NaN or integer. Maximum number of lags if \emph{lags_criterion} is character with lag length criterion. NaN otherwise.
+#'         will be given at \emph{lags_endog_lin}. Possible lag length criteria are 'AICc', 'AIC' or 'BIC'.
+#'         Note that when \emph{twosls = TRUE}, the lag lengths are chosen based on normal OLS regressions, without using the instruments.
+#' @param max_lags NaN or integer. Maximum number of lags if \emph{lags_criterion} is a character denoting the lag length criterion. NaN otherwise.
 #' @param trend Integer. No trend =  0 , include trend = 1, include trend and quadratic trend = 2.
-#' @param confint Double. Width of confidence bands. 68\% = 1, 90\% = 1.65, 95\% = 1.96.
+#' @param confint Double. Width of confidence bands. 68\% = 1; 90\% = 1.65; 95\% = 1.96.
 #' @param hor Integer. Number of horizons for impulse responses.
 #' @param num_cores NULL or Integer. The number of cores to use for the estimation. If NULL, the function will
 #'                  use the maximum number of cores minus one.
@@ -26,20 +30,20 @@
 #'
 #'
 #'
-#'\item{irf_lin_mean}{A \link{matrix} containing the impulse responses.
+#'\item{irf_lin_mean}{A \link{matrix}, containing the impulse responses.
 #'                    The row in each matrix denotes the response of the \emph{ith}
-#'                    variable to the (instrument) shock. The columns are the horizons.}
+#'                    variable to the shock. The columns are the horizons.}
 #'
-#'\item{irf_lin_low}{A \link{matrix} containing all lower confidence bands of
+#'\item{irf_lin_low}{A \link{matrix}, containing all lower confidence bands of
 #'                    the impulse responses, based on robust standard errors by Newey and West (1987).
 #'                    Properties are equal to \emph{irf_lin_mean}.}
 #'
-#'\item{irf_lin_up}{A \link{matrix} containing all upper confidence bands of
+#'\item{irf_lin_up}{A \link{matrix}, containing all upper confidence bands of
 #'                    the impulse responses, based on robust standard errors by Newey and West (1987).
 #'                    Properties are equal to \emph{irf_lin_mean}.}
 #'
 #'\item{specs}{A list with properties of \emph{endog_data} for the plot function. It also contains
-#'             lagged data (y_lin and x_lin) used for the estimations of the irfs.}
+#'             lagged data (y_lin and x_lin) used for the estimations of the impulse responses.}
 #'
 #'
 #'
@@ -47,8 +51,12 @@
 #' @references
 #' Akaike, H. (1974). "A new look at the statistical model identification", \emph{IEEE Transactions on Automatic Control}, 19 (6): 716–723.
 #'
-#' Auerbach, A. J., and  Gorodnichenko Y. (2012). "Measuring the Output Responses to Fiscal Policy."
+#' Auerbach, A. J., and  Gorodnichenko, Y. (2012). "Measuring the Output Responses to Fiscal Policy."
 #' \emph{American Economic Journal: Economic Policy}, 4 (2): 1-27.
+#'
+#' Blanchard, O., and Perotti, R. (2002). “An Empirical Characterization of the
+#' Dynamic Effects of Changes in Government Spending and Taxes on Output.” \emph{Quarterly
+#' Journal of Economics}, 117(4): 1329–1368.
 #'
 #' Hurvich, C. M., and  Tsai, C.-L. (1989), "Regression and time series model selection in small samples",
 #' \emph{Biometrika}, 76(2): 297–307
@@ -74,7 +82,7 @@
 #'\donttest{
 #'
 #'# This example replicates a result from the Supplementary Appendix
-#'# by Ramey and Zubairy (2018) (RZ-18).
+#'# by Ramey and Zubairy (2018) (RZ-18)
 #'
 #'# Load data
 #'  ag_data       <- ag_data
@@ -84,13 +92,14 @@
 #'# Endogenous data
 #'  endog_data    <- ag_data[sample_start:sample_end,3:5]
 #'
-#'# Shock ('Instrument')
+#'# Variable to shock with. Here government spending due to
+#'# Blanchard and Perotti (2002) framework
 #'  shock         <- ag_data[sample_start:sample_end, 3]
 #'
 #'# Estimate linear model
 #'  results_lin_iv <- lp_lin_iv(endog_data,
 #'                                lags_endog_lin = 4,
-#'                                instr          = shock,
+#'                                shock          = shock,
 #'                                exog_data      = NULL,
 #'                                lags_exog      = NULL,
 #'                                contemp_data   = NULL,
@@ -106,9 +115,9 @@
 #'  iv_lin_plots    <- plot_lin(results_lin_iv)
 #'
 #'# * The first element of 'iv_lin_plots' shows the response of the first
-#'#   variable (Gov) to the chosen (instrument-)shock (here Gov).
+#'#   variable (Gov) to the  shock (Gov).
 #'# * The second element of 'iv_lin_plots' shows the response of the second
-#'#   variable (Tax) to the chosen (instrument-)shock (Gov).
+#'#   variable (Tax) to the shock (Gov).
 #'# * ...
 #'
 #'# This plot replicates the left plot in the mid-panel of Figure 12 in the
@@ -116,19 +125,98 @@
 #'  iv_lin_plots[[1]]
 #'
 #'# Show all impulse responses by using 'ggpubr' and 'gridExtra'
-#'# The package does not depend on those packages so they have to be installed
+#'# lpirfs does not depend on those packages so they have to be installed
 #'  library(ggpubr)
 #'  library(gridExtra)
 #'
 #'  lin_plots_all <- sapply(iv_lin_plots, ggplotGrob)
 #'  marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = 1, top = NULL)
 #'
+#'
+#'## Add lags of the identified shock ##
+#'
+#'# Endogenous data but now exclude government spending
+#'  endog_data    <- ag_data[sample_start:sample_end, 4:5]
+#'
+#'# Variable to shock with (government spending)
+#'  shock         <- ag_data[sample_start:sample_end, 3]
+#'
+#'# Add the shock variable to exogenous data
+#'  exog_data     <- shock
+#'
+#'# Estimate linear model with lagged shock variable
+#'  results_lin_iv <- lp_lin_iv(endog_data,
+#'                                lags_endog_lin = 4,
+#'                                shock          = shock,
+#'                                exog_data      = exog_data,
+#'                                lags_exog      = 2,
+#'                                contemp_data   = NULL,
+#'                                lags_criterion = NaN,
+#'                                max_lags       = NaN,
+#'                                trend          = 0,
+#'                                confint        = 1.96,
+#'                                hor            = 20,
+#'                                num_cores      = NULL)
+#'
+#'
+#'# Make and save plots
+#'  iv_lin_plots    <- plot_lin(results_lin_iv)
+#'  lin_plots_all   <- sapply(iv_lin_plots, ggplotGrob)
+#'  marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = 1, top = NULL)
+#'
+#'
+#'##############################################################################
+#'#####                         Use 2SLS                               #########
+#'##############################################################################
+#'
+#'# Set seed
+#'  set.seed(007)
+#'
+#'# Load data
+#'  ag_data       <- ag_data
+#'  sample_start  <- 7
+#'  sample_end    <- dim(ag_data)[1]
+#'
+#'# Endogenous data
+#'  endog_data    <- ag_data[sample_start:sample_end,3:5]
+#'
+#'# Variable to shock with (government spending)
+#'  shock         <- ag_data[sample_start:sample_end, 3]
+#'
+#'# Generate instrument variable that is correlated with government spending
+#'  instrum       <- as.data.frame(0.9*shock$Gov + rnorm(length(shock$Gov), 0, 0.02) )
+#'
+#'# Estimate linear model via SLS
+#'  results_lin_iv <- lp_lin_iv(endog_data,
+#'                             lags_endog_lin = 4,
+#'                             shock          = shock,
+#'                             instrum        = instrum,
+#'                             twosls         = TRUE,
+#'                             exog_data      = NULL,
+#'                             lags_exog      = NULL,
+#'                             contemp_data   = NULL,
+#'                             lags_criterion = NaN,
+#'                             max_lags       = NaN,
+#'                             trend          = 0,
+#'                             confint        = 1.96,
+#'                             hor            = 20,
+#'                             num_cores      = NULL)
+#'
+#'# Create all plots
+#'  iv_lin_plots    <- plot_lin(results_lin_iv)
+#'
+#'
+#'# Show response of GDP
+#'  iv_lin_plots[[3]]
 #' }
-
-
+#'
+#'
 lp_lin_iv <- function(endog_data,
+                   shock          = NULL,
                    instr          = NULL,
-                   lags_endog_lin       = NULL,
+                   twosls         = FALSE,
+                   instrum        = NULL,
+                   lags_endog_lin = NULL,
                    exog_data      = NULL,
                    lags_exog      = NULL,
                    contemp_data   = NULL,
@@ -139,6 +227,11 @@ lp_lin_iv <- function(endog_data,
                    hor            = NULL,
                    num_cores      = NULL){
 
+  # Give warning if 'instr' is used as input name
+  if(!is.null(instr)){
+    shock = instr
+    warning("'instr' is a deprecated input name. Use 'shock' instead.")
+  }
 
   # Check whether data is a data.frame
   if(!(is.data.frame(endog_data))){
@@ -151,12 +244,12 @@ lp_lin_iv <- function(endog_data,
   }
 
   # Check whether instrument for shock is given
-  if(is.null(instr)){
+  if(is.null(shock)){
     stop('You have to provide an instrument to shock with.')
   }
 
   # Check whether instrument for shock is given
-  if(!is.data.frame(instr)){
+  if(!is.data.frame(shock)){
     stop('The instrument has to be given as a data.frame().')
   }
 
@@ -170,18 +263,7 @@ lp_lin_iv <- function(endog_data,
     stop('Please provide a lag length for the exogenous data.')
   }
 
-
-  # Give message when no linear model is provided
-  if(is.null(exog_data)){
-    message('You estimate the model without exogenous data.')
-  }
-
-  # Give message when no contemporaneous data is provided
-  if(is.null(contemp_data)){
-    message('You estimate the model without exogenous data with contemporaneous impact.')
-  }
-
-  # Give message when no contemporaneous data is provided
+  # Check whether 'lags_criterion' is correctly specified
   if(is.null(lags_criterion)){
     stop('"lags_criterion" has to be NaN or a character, specifying the lag length criterion.')
   }
@@ -233,12 +315,37 @@ lp_lin_iv <- function(endog_data,
   }
 
 
+  # Give error when twosls = T but instrum = NULL
+  if(isTRUE(twosls) & is.null(instrum)){
+    stop('Please specify at least one instrument to use for 2SLS.')
+  }
+
+
+  # Give message when no exogenous data is provided
+  if(!is.null(exog_data)){
+    message('You estimate the model without exogenous data.')
+  }
+
+  # Give message when no contemporaneous data is provided
+  if(is.null(contemp_data)){
+    message('You estimate the model without exogenous data with contemporaneous impact.')
+  }
+
+
+  # Give message when regression is done via 2SLS
+  if(isTRUE(twosls)){
+    message('Coefficients and confidence bands are estimated via 2SLS.')
+  }
+
+
 
   # Create list to store inputs
   specs <- list()
 
   # Specify inputs
-  specs$instr              <- instr
+  specs$shock              <- shock
+  specs$twosls             <- twosls
+  specs$instrum            <- instrum
   specs$lags_endog_lin     <- lags_endog_lin
   specs$exog_data          <- exog_data
   specs$lags_exog          <- lags_exog
@@ -249,7 +356,6 @@ lp_lin_iv <- function(endog_data,
   specs$confint            <- confint
   specs$hor                <- hor
   specs$model_type         <- 1
-
 
 
 
@@ -266,10 +372,12 @@ lp_lin_iv <- function(endog_data,
 
   y_lin    <- data_lin[[1]]
   x_lin    <- data_lin[[2]]
+  z_lin    <- data_lin[[3]]
 
 # Save endogenous and lagged exogenous data in specs
   specs$y_lin        <- y_lin
   specs$x_lin        <- x_lin
+  specs$z_lin        <- z_lin
 
 
 
@@ -317,11 +425,28 @@ if(is.nan(specs$lags_criterion) == TRUE){
 
                           for (k in 1:specs$endog){ # Accounts for the reactions of the endogenous variables
 
-                            # Estimate coefficients and newey west std.err
-                            if(specs$endog == 1 ){
-                              nw_results   <- lpirfs::newey_west(yy, xx, h)
-                                         } else {
-                              nw_results   <- lpirfs::newey_west(yy[, k], xx, h)
+                            # Check whether use OLS or 2sls
+                            if(specs$twosls == FALSE){
+
+                              # Estimate OLS betas and newey west std.err
+                                if(specs$endog == 1 ){
+                                  nw_results   <- lpirfs::newey_west(yy, xx, h)
+                                             } else {
+                                  nw_results   <- lpirfs::newey_west(yy[, k], xx, h)
+                                }
+                                      }   else   {
+
+                               # Extract instrument matrix and save as matrix
+                                zz <- specs$z_lin[1 : (dim(z_lin)[1] - h + 1), ] %>%
+                                      as.matrix()
+
+                                # Estimate 2SLS betas and newey west std.err
+                                if(specs$endog == 1 ){
+                                  nw_results   <- lpirfs::newey_west_tsls(yy, xx, zz, h)
+                                              }   else   {
+                                  nw_results   <- lpirfs::newey_west_tsls(yy[, k], xx, zz, h)
+                                }
+
                             }
 
                             b              <- nw_results[[1]]
@@ -382,8 +507,24 @@ if(is.nan(specs$lags_criterion) == TRUE){
                             xx <- x_lin[[lag_choice]]
                             xx <- xx[1:(dim(xx)[1] - h + 1),]
 
-                            # Estimate coefficients and newey west std.err
-                            nw_results     <- lpirfs::newey_west(yy, xx, h)
+                            # Check whether use OLS or 2sls
+                            if(specs$twosls == FALSE){
+
+                                # Estimate coefficients and newey west std.err
+                                nw_results     <- lpirfs::newey_west(yy, xx, h)
+                            #    b              <- nw_results[[1]]
+                            #    std_err        <- sqrt(diag(nw_results[[2]]))*specs$confint
+
+                                        } else {
+
+                                # Extract instrument matrix z_lin
+                                zz         <- z_lin[[lag_choice]]
+                                zz         <- zz[1:(dim(zz)[1] - h + 1),]
+
+                                # Estimate 2SLS betas and newey west std.err
+                                nw_results <- lpirfs::newey_west_tsls(yy, xx, zz, h)
+                            }
+
                             b              <- nw_results[[1]]
                             std_err        <- sqrt(diag(nw_results[[2]]))*specs$confint
 

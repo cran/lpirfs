@@ -1,41 +1,57 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
-//' @name newey_west
-//' @title Compute OLS parameters and robust standard errors based on Newey-West estimator
-//' @description  Compute OLS parameters and robust standard errors based on Newey and West (1987).
-//' The function is based on the Matlab code by James P. LeSage.
+//' @name newey_west_tsls
+//' @title Compute 2SLS parameters and robust standard errors based on Newey-West
+//' @description  Compute 2SLS parameters and robust standard errors based on Newey and West (1987).
+//' Part of the function is based on the Matlab code by James P. LeSage.
 //' @param y Numeric vector.
 //' @param x Numeric matrix.
+//' @param z Numeric matrix.
 //' @param h Integer.
-//' @return A list. The first element contains the estimated OLS parameters and the second element
-//' the covariance matrix of the parameters.
+//' @return A list. The first element contains the estimated 2SLS parameters and the second element
+//' the covariance matrix of these parameters.
 //' @keywords internal
 //' @references
 //' Newey, W.K., and West, K.D. (1987). “A Simple, Positive-Definite, Heteroskedasticity and
 //' Autocorrelation Consistent Covariance Matrix.” \emph{Econometrica}, 55, 703–708.
+//' Wooldridge, J.M. (2002), Econometric Analysis of Cross Section and Panel Data, The MIT Press.
 // [[Rcpp::export]]
-List newey_west(NumericVector y, NumericMatrix x, int h){
+List newey_west_tsls(NumericVector y, NumericMatrix x, NumericMatrix z, int h){
   NumericMatrix V;
-  arma::mat G, M, xx, xx_one, yy, M1, M2, ga, g1, w, za, xpxi, emat, hhat;
-  arma::vec w1, beta, resids;
+  arma::mat G, M, xx, xx_one, yy, xx_hat, zz, M1, M2, ga, g1, w, za, xpxi, xpxi_iv, emat, hhat;
+  arma::vec w1, beta_iv, resids;
   int nrow_hhat, a, nobs, num_exog, nlag;
   List ret(2);
 
 
-  // OLS
+  // 2SLS
   xx       = as<arma::mat>(x);
   xx_one   = arma::ones<arma::mat>(xx.n_rows, 1); // Insert ones for constant
   xx.insert_cols(0, xx_one);
 
   yy       = as<arma::vec>(y);
+
+  zz       = as<arma::mat>(z);
+  zz.insert_cols(0, xx_one);
+
+  // Build x_hat matrix with instrument matrix
+  xx_hat   = zz*inv(zz.t()*zz)*zz.t()*xx;
+
+  // Estimate beta_iv
+  xpxi_iv  = inv(xx_hat.t()*xx_hat);
+  beta_iv  = xpxi_iv*xx_hat.t()*yy;
+
+  // Estimate corrected residuals
+  resids   = yy - xx*beta_iv;
+
   num_exog = xx.n_cols;
   nobs     = xx.n_rows;
 
-  xpxi     = inv(xx.t()*xx);
-  beta     = xpxi*xx.t()*yy;
-  resids   = yy - xx*beta;
+
 
   // Start Newey-West
+  // Use original data for newey west estimator
+  xpxi     = inv(xx.t()*xx);
   nlag     = h; // The lag increases with the horizons
   emat     = arma::zeros<arma::mat>(nobs, num_exog);
   emat.cols(0, num_exog-1).each_col()   = resids;
@@ -76,7 +92,7 @@ List newey_west(NumericVector y, NumericMatrix x, int h){
   }
   V = wrap(xpxi*G*xpxi);
 
-  ret[0]  = beta;
+  ret[0]  = beta_iv;
   ret[1]  = V;
   return (ret);
 

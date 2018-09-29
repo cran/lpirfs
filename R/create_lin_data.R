@@ -19,7 +19,7 @@ create_lin_data     <- function(specs, endog_data){
 
     # Make exogenous lagged data and check, whether lag length is zero
     if(specs$lags_endog_lin == 0){
-      x_lin <- data.frame(x = rep(0, nrow(endog_data)))
+      x_lin <- data.frame(x = rep(Inf, nrow(endog_data)))
               } else {
       x_lin <- create_lags(endog_data, specs$lags_endog_lin)
       }
@@ -28,29 +28,26 @@ create_lin_data     <- function(specs, endog_data){
     # 0 = Normal model, 1 = IV model
     # Prepare instrument variable and add to exogenous data
     if(specs$model_type == 1){
-    instrum           <- specs$instr
-    colnames(instrum) <- 'instrum'
-    instrum_names     <- colnames(instrum)
-    x_lin             <- cbind(instrum, x_lin)
+    shock             <- specs$shock
+    colnames(shock)   <- 'shock'
+    x_lin             <- cbind(shock, x_lin)
              }
 
     # Include no trend, trend or quadratic trend
     if (specs$trend == 0){
 
-      x_lin      <-   x_lin %>%
-                      as.matrix()
+      x_lin      <-   x_lin
+
             } else if (specs$trend == 1){
 
       x_lin      <-   x_lin                                           %>%
-                      dplyr::mutate(trend = row_number())             %>%
-                      as.matrix()
+                      dplyr::mutate(trend = row_number())
 
               } else {
 
       x_lin      <-   x_lin                                   %>%
                       dplyr::mutate(trend = row_number())     %>%
-                      dplyr::mutate(sq_trend = trend^2)       %>%
-                      as.matrix()
+                      dplyr::mutate(sq_trend = trend^2)
     }
 
 
@@ -75,10 +72,10 @@ create_lin_data     <- function(specs, endog_data){
     }
 
     # Combine endogenous and exogenous data
-      yx_all    <- cbind(y_lin, x_lin) %>%
+      yx_all    <- cbind(y_lin, x_lin)   %>%
                    stats::na.omit()
 
-      yx_all    <- yx_all[, !(colSums(yx_all) == 0)]
+      yx_all    <- yx_all[,  !(colSums(yx_all) == Inf)]
 
 
       y_lin     <- yx_all[, 1:ncol(endog_data)]  %>%
@@ -89,13 +86,28 @@ create_lin_data     <- function(specs, endog_data){
 
 
 
+    # Check whether z_lin matrix has to be build for 2sls
+      if(specs$twosls == TRUE){
+
+    # Compare lag length between endog_lin and lags_exog
+      z_lag         <- max(specs$lags_endog_lin, specs$lags_exog)
+      z_lin         <- x_lin[, -1]
+      z_lin         <- cbind(specs$instrum[(z_lag + 1):dim(specs$instrum)[1], ], z_lin)
+
+    # Set instrument variable to NULL if twosls = FALSE
+                } else {
+      z_lin <- NULL
+    }
+
+
 ################################################################################
-                                     } else {
+                               } else {
 ################################################################################
 
     # Create list to store lagged data
     y_lin_store     <- rep(list(NaN), specs$max_lags)
     x_lin_store     <- rep(list(NaN), specs$max_lags)
+    z_lin_store     <- rep(list(NaN), specs$max_lags)
 
     y_lin           <- endog_data
 
@@ -109,9 +121,9 @@ create_lin_data     <- function(specs, endog_data){
 
       if(specs$model_type == 1){
      # Prepare instrument variable
-        instrum            <- specs$instr
+        shock            <- specs$shock
      # Add instrument to 'exogenous' data
-        x_lin              <- cbind(instrum, x_lin)
+        x_lin              <- cbind(shock, x_lin)
        }
 
      # Include no trend, trend or quadratic trend
@@ -152,7 +164,7 @@ create_lin_data     <- function(specs, endog_data){
 
 
 
-        # Merge all and extract exogenous and endogenous data
+    # Merge all and extract exogenous and endogenous data
         yx_all               <-  cbind(y_lin, x_lin)  %>%
                                  stats::na.omit()
 
@@ -162,6 +174,17 @@ create_lin_data     <- function(specs, endog_data){
         x_lin_store[[i]]     <-  yx_all[, (ncol(endog_data) + 1):dim(yx_all)[2]] %>%
                                  as.matrix()
 
+        # Check whether z_lin matrix has to be build for 2sls
+        if(specs$twosls == TRUE){
+
+          # Compare lag length between endog_lin and lags_exog
+          z_lag                <- max(i, specs$lags_exog)
+          z_lin                <- x_lin_store[[i]][, -1]
+          z_lin                <- cbind(specs$instrum[(z_lag + 1):dim(specs$instrum)[1], ], z_lin)
+          z_lin_store[[i]]     <- z_lin
+
+                    }     else    {}
+
 
 
     }
@@ -170,9 +193,20 @@ create_lin_data     <- function(specs, endog_data){
         y_lin <- y_lin_store
         x_lin <- x_lin_store
 
+        # Set instrument variable to NULL if twosls = FALSE
+        if(specs$twosls == FALSE){
+
+        z_lin <- NULL
+
+           } else {
+
+        z_lin <- z_lin_store
+
+        }
+
 }
 
-# Return list with exogenous and endogenous data
-        return(list(y_lin, x_lin))
+# Return list with exogenous, endogenous data, and iv data
+        return(list(y_lin, x_lin, z_lin))
 
 }

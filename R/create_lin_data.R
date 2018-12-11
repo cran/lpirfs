@@ -1,6 +1,6 @@
 #' @name create_lin_data
-#' @title Compute data for linear model with instrument variable  approach
-#' @description Function to create data for linear model with instrument variable approach.
+#' @title Compute data for linear model
+#' @description Function to create data for linear model.
 #' @param specs A \link{list}(). Inputs are created in \link{lp_lin_iv}.
 #' @param endog_data A \link{data.frame} with dependent variables.
 #' @return List with filled matrices of lagged left (y_lin) and right hand side (x_lin) variables.
@@ -19,19 +19,25 @@ create_lin_data     <- function(specs, endog_data){
 
     # Make exogenous lagged data and check, whether lag length is zero
     if(specs$lags_endog_lin == 0){
+
       x_lin <- data.frame(x = rep(Inf, nrow(endog_data)))
+
               } else {
+
       x_lin <- create_lags(endog_data, specs$lags_endog_lin)
+
       }
 
     # Check whether model type is 'iv'.
     # 0 = Normal model, 1 = IV model
     # Prepare instrument variable and add to exogenous data
     if(specs$model_type == 1){
-    shock             <- specs$shock
-    colnames(shock)   <- 'shock'
-    x_lin             <- cbind(shock, x_lin)
-             }
+
+      shock             <- specs$shock
+      colnames(shock)   <- 'shock'
+      x_lin             <- cbind(shock, x_lin)
+
+    }
 
     # Include no trend, trend or quadratic trend
     if (specs$trend == 0){
@@ -87,14 +93,14 @@ create_lin_data     <- function(specs, endog_data){
 
 
     # Check whether z_lin matrix has to be build for 2sls
-      if(specs$twosls == TRUE){
+      if(specs$use_twosls == TRUE){
 
     # Compare lag length between endog_lin and lags_exog
       z_lag         <- max(specs$lags_endog_lin, specs$lags_exog)
       z_lin         <- x_lin[, -1]
       z_lin         <- cbind(specs$instrum[(z_lag + 1):dim(specs$instrum)[1], ], z_lin)
 
-    # Set instrument variable to NULL if twosls = FALSE
+    # Set instrument variable to NULL if use_twosls = FALSE
                 } else {
       z_lin <- NULL
     }
@@ -175,7 +181,7 @@ create_lin_data     <- function(specs, endog_data){
                                  as.matrix()
 
         # Check whether z_lin matrix has to be build for 2sls
-        if(specs$twosls == TRUE){
+        if(specs$use_twosls == TRUE){
 
           # Compare lag length between endog_lin and lags_exog
           z_lag                <- max(i, specs$lags_exog)
@@ -193,8 +199,8 @@ create_lin_data     <- function(specs, endog_data){
         y_lin <- y_lin_store
         x_lin <- x_lin_store
 
-        # Set instrument variable to NULL if twosls = FALSE
-        if(specs$twosls == FALSE){
+        # Set instrument variable to NULL if use_twosls = FALSE
+        if(specs$use_twosls == FALSE){
 
         z_lin <- NULL
 

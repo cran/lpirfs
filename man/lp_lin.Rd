@@ -4,8 +4,8 @@
 \alias{lp_lin}
 \title{Compute linear impulse responses}
 \usage{
-lp_lin(endog_data, lags_endog_lin = NULL, lags_criterion = NULL,
-  max_lags = NULL, trend = NULL, shock_type = NULL, confint = NULL,
+lp_lin(endog_data, lags_endog_lin = NULL, lags_criterion = NaN,
+  max_lags = NaN, trend = NULL, shock_type = NULL, confint = NULL,
   hor = NULL, exog_data = NULL, lags_exog = NULL,
   contemp_data = NULL, num_cores = NULL)
 }
@@ -15,10 +15,10 @@ column order.}
 
 \item{lags_endog_lin}{NaN or integer. NaN if lag length criterion is used. Integer for number of lags for \emph{endog_data}.}
 
-\item{lags_criterion}{NaN or character. NaN means that the number of lags
+\item{lags_criterion}{NaN or character. NaN (default) means that the number of lags
 has to be given at \emph{lags_endog_lin}. The character specifies the lag length criterion ('AICc', 'AIC' or 'BIC').}
 
-\item{max_lags}{NaN or integer. Maximum number of lags if \emph{lags_criterion} is given. NaN otherwise.}
+\item{max_lags}{NaN or integer. Maximum number of lags if \emph{lags_criterion} is given. NaN (default) otherwise.}
 
 \item{trend}{Integer. No trend =  0 , include trend = 1, include trend and quadratic trend = 2.}
 
@@ -63,7 +63,6 @@ Compute linear impulse responses with local projections by Jordà (2005).
 }
 \examples{
 \donttest{
-
           ## Example without exogenous variables
 
 # Load package
@@ -75,16 +74,10 @@ Compute linear impulse responses with local projections by Jordà (2005).
 # Estimate linear model
   results_lin <- lp_lin(endog_data,
                              lags_endog_lin = 4,
-                             exog_data      = NULL,
-                             lags_exog      = NULL,
-                             lags_criterion = NaN,
-                             max_lags       = NaN,
                              trend          = 0,
                              shock_type     = 1,
                              confint        = 1.96,
-                             hor            = 12,
-                             contemp_data   = NULL,
-                             num_cores      = NULL)
+                             hor            = 12)
 
 # Make plots
  linear_plots <- plot_lin(results_lin)
@@ -125,16 +118,13 @@ Compute linear impulse responses with local projections by Jordà (2005).
 # Estimate linear model
   results_lin <- lp_lin(endog_data,
                                lags_endog_lin = 4,
-                               lags_criterion = NaN,
-                               max_lags       = NaN,
                                trend          = 0,
                                shock_type     = 1,
                                confint        = 1.96,
                                hor            = 12,
                                exog_data      = exog_data,
                                lags_exog      = 4,
-                               contemp_data   = contemp_data,
-                               num_cores      = NULL)
+                               contemp_data   = contemp_data)
 
 # Make plots
  linear_plots <- plot_lin(results_lin)

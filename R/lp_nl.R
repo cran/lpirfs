@@ -1,30 +1,33 @@
 #' @name lp_nl
 #' @title Compute nonlinear impulse responses
 #' @description Compute nonlinear impulse responses with local projections by Jordà (2005). The
-#' data are separated into two states via a smooth transition function as applied in Auerbach and Gorodnichenko (2012).
+#' data can be separated into two states by a smooth transition function as applied in Auerbach and Gorodnichenko (2012),
+#' or by a simple dummy approach.
 #'
 #' @param endog_data A \link{data.frame}, containing all endogenous variables for the VAR. The Cholesky decomposition is based on the
 #'                   column order.
-#' @param lags_criterion NaN or character. NaN means that the number of lags
+#' @param lags_criterion NaN or character. NaN (default) means that the number of lags
 #'         will be given at \emph{lags_endog_nl} and \emph{lags_endog_lin}. The lag length criteria are 'AICc', 'AIC' and 'BIC'.
 #' @param lags_endog_lin NaN or integer. NaN if lag length criterion is used.
 #'                                Integer for number of lags for linear VAR to identify shock.
 #' @param lags_endog_nl NaN or integer. Number of lags for nonlinear VAR. NaN if lag length criterion is given.
-#' @param max_lags NaN or integer. Maximum number of lags (if \emph{lags_criterion} = 'AICc', 'AIC', 'BIC'). NaN otherwise.
+#' @param max_lags NaN or integer. Maximum number of lags (if \emph{lags_criterion} = 'AICc', 'AIC', 'BIC'). NaN (default) otherwise.
 #' @param trend Integer. Include no trend =  0 , include trend = 1, include trend and quadratic trend = 2.
 #' @param shock_type Integer. Standard deviation shock = 0, unit shock = 1.
 #' @param confint Double. Width of confidence bands. 68\% = 1; 90\% = 1.65; 95\% = 1.96.
 #' @param hor Integer. Number of horizons for impulse responses.
-#' @param switching Numeric vector. A column vector with the same length as \emph{endog_data}. This series can either
+#' @param switching Numeric vector. A column vector with the same length as \emph{endog_data}. If 'use_logistic = TRUE', this series can either
 #'               be decomposed via the Hodrick-Prescott filter (see Auerbach and Gorodnichenko, 2013) or
-#'               directly plugged into the following smooth transition function:
+#'               directly plugged into the following logistic function:
 #'               \deqn{ F_{z_t} = \frac{exp(-\gamma z_t)}{1 + exp(-\gamma z_t)}. }
-#'               Warning: \eqn{F_{z_t}} will be lagged by one and then multiplied with the data.
-#'               If the variable shall not be lagged, the vector has to be given with a lead of one.
-#'               The data for the two regimes are: \cr
+#'               Important: \eqn{F_{z_t}} will be lagged by one and then multiplied with the data.
+#'               If the variable shall not be lagged, use 'lag_switching = FALSE': \cr
 #'               Regime 1 = (1-\eqn{F(z_{t-1})})*y_{(t-p)}, \cr
 #'               Regime 2 = \eqn{F(z_{t-1})}*y_{(t-p)}.
+#'@param lag_switching Boolean. Use the first lag of the values of the transition function? TRUE (default) or FALSE.
 #'@param gamma Double. Positive number which is used in the transition function.
+#'@param use_logistic Boolean. Use logistic function to separate states? TRUE (default) or FALSE. If FALSE, the values of the switching variable
+#'                     have to be binary (0/1).
 #'@param use_hp Boolean. Use HP-filter? TRUE or FALSE.
 #'@param lambda Double. Value of \eqn{\lambda} for the Hodrick-Prescott filter (if use_hp = TRUE).
 #'@param exog_data A \link{data.frame}, containing exogenous variables for the VAR. The row length has to be the same as \emph{endog_data}.
@@ -100,7 +103,6 @@
 #' @import foreach
 #' @examples
 #'\donttest{
-#'
 #'                   ## Example without exogenous variables ##
 #'
 #'# Load package
@@ -117,8 +119,6 @@
 #'   results_nl    <- lp_nl(endog_data,
 #'                                 lags_endog_lin  = 4,
 #'                                 lags_endog_nl   = 3,
-#'                                 lags_criterion  = NaN,
-#'                                 max_lags        = NaN,
 #'                                 trend           = 0,
 #'                                 shock_type      = 1,
 #'                                 confint         = 1.96,
@@ -126,11 +126,7 @@
 #'                                 switching       = switching_data,
 #'                                 use_hp          = TRUE,
 #'                                 lambda          = 1600,
-#'                                 gamma           = 3,
-#'                                 exog_data       = NULL,
-#'                                 lags_exog       = NULL,
-#'                                 contemp_data    = NULL,
-#'                                 num_cores       = NULL)
+#'                                 gamma           = 3)
 #'
 #'# Make and save all plots
 #'   nl_plots <- plot_nl(results_nl)
@@ -174,8 +170,6 @@
 #'  results_nl <- lp_nl(endog_data,
 #'                           lags_endog_lin  = 4,
 #'                           lags_endog_nl   = 3,
-#'                           lags_criterion  = NaN,
-#'                           max_lags        = NaN,
 #'                           trend           = 0,
 #'                           shock_type      = 1,
 #'                           confint         = 1.96,
@@ -188,9 +182,7 @@
 #'                                                   # Monthly data   = 129 600
 #'                           gamma           = 3,
 #'                           exog_data       = exog_data,
-#'                           lags_exog       = 3,
-#'                           contemp_data    = NULL,
-#'                           num_cores       = NULL)
+#'                           lags_exog       = 3)
 #'
 #'# Make and save all plots
 #'   nl_plots <- plot_nl(results_nl)
@@ -211,13 +203,15 @@
 lp_nl <- function(endog_data,
                                lags_endog_lin = NULL,
                                lags_endog_nl  = NULL,
-                               lags_criterion = NULL,
-                               max_lags       = NULL,
+                               lags_criterion = NaN,
+                               max_lags       = NaN,
                                trend          = NULL,
                                shock_type     = NULL,
                                confint        = NULL,
                                hor            = NULL,
                                switching      = NULL,
+                               lag_switching  = TRUE,
+                               use_logistic   = TRUE,
                                use_hp         = NULL,
                                lambda         = NULL,
                                gamma          = NULL,
@@ -239,6 +233,8 @@ lp_nl <- function(endog_data,
     specs$confint        <- confint
     specs$hor            <- hor
     specs$switching      <- switching
+    specs$lag_switching  <- lag_switching
+    specs$use_logistic   <- use_logistic
     specs$use_hp         <- use_hp
     specs$lambda         <- lambda
     specs$gamma          <- gamma
@@ -251,7 +247,7 @@ lp_nl <- function(endog_data,
     specs$model_type     <- 0
 
     # Set 2SLS option to FALSE
-    specs$twosls <- FALSE
+    specs$use_twosls <- FALSE
 
 #--- Check inputs
 
@@ -261,44 +257,44 @@ lp_nl <- function(endog_data,
   }
 
   # Check whether 'trend' is given
-  if(is.null(specs$trend) == TRUE){
+  if(is.null(specs$trend)){
     stop('Please specify whether and which type of trend to include.')
   }
 
   # Check whether 'shock_type' is given
-  if(is.null(specs$shock_type) == TRUE){
+  if(is.null(specs$shock_type)){
     stop('Please specify which type of shock to use.')
   }
 
   # Check whether switching variable is given
-  if(is.null(specs$switching) == TRUE){
+  if(is.null(specs$switching)){
     stop('Please provide a switching variable.')
   }
 
   # Check whether 'use_hp' is given
-  if(is.null(specs$use_hp) == TRUE){
+  if(is.null(specs$use_hp)){
     stop('Please specify whether to use the HP-filter for the switching variable.')
   }
 
   # Check whether lambda is given if 'use_hp == 1'
   if((specs$use_hp == 1) &
-     (is.null(specs$lambda) == TRUE)){
+     (is.null(specs$lambda))){
     stop('Please specify lambda for the HP-filter.')
   }
 
   # Check whether 'gamma' is given
-  if(is.null(specs$gamma) == TRUE){
+  if(is.null(specs$gamma)){
     stop('Please specify gamma for the transition function.')
   }
 
   # Check whether 'confint' is given
-  if(is.null(specs$confint) == TRUE){
+  if(is.null(specs$confint)){
     stop('Please specify a value for the width of the confidence bands.')
   }
 
 
   # Check whether number of horizons is given
-  if(is.null(specs$hor) == TRUE){
+  if(is.null(specs$hor)){
     stop('Please specify the number of horizons.')
   }
 
@@ -310,29 +306,29 @@ lp_nl <- function(endog_data,
 
 
   # Check whether lags criterion and fixed number of lags for nonlinear model is given
-  if((is.character(specs$lags_criterion) == TRUE) &
-     (!is.na(specs$lags_endog_nl) == TRUE)){
+  if((is.character(specs$lags_criterion)) &
+     (!is.na(specs$lags_endog_nl))){
     stop('You can not provide a lag criterion (AICc, AIC or BIC) and a fixed number of lags.')
   }
 
 
   # Check whether lags criterion and fixed number of lags for linear model is given
-  if((is.character(specs$lags_criterion) == TRUE) &
-     (!is.na(specs$lags_endog_lin) == TRUE)){
+  if((is.character(specs$lags_criterion)) &
+     (!is.na(specs$lags_endog_lin))){
     stop('You can not provide a lag criterion (AICc, AIC or BIC) and a fixed number of lags.')
   }
 
 
   # Check whether maximum number of lags is given for lag length criterion
-  if((is.character(specs$lags_criterion)  == TRUE) &
-     (is.na(specs$max_lags)               == TRUE)){
+  if((is.character(specs$lags_criterion)) &
+     (is.na(specs$max_lags))){
     stop('Please provide a maximum number of lags for the lag length criterion.')
   }
 
 
   # Check whether lin_lags is given if nl_lags is given
-  if((is.numeric(specs$lags_endog_nl) == TRUE) &
-     (is.null(specs$lags_endog_lin) == TRUE)){
+  if((is.numeric(specs$lags_endog_nl)) &
+     (is.null(specs$lags_endog_lin))){
     stop('Please provide a lag length for the linear model to identify the shock.')
   }
 
@@ -367,6 +363,11 @@ lp_nl <- function(endog_data,
     stop('The width of the confidence bands has to be >=0.')
   }
 
+  # Check whether 'gamma' is given
+   if(isTRUE(use_logistic) & is.null(gamma) == TRUE){
+     stop('Please specify gamma for the transition function.')
+   }
+
   # Check whether gamma is positive
   if((specs$gamma < 0)){
     stop('Gamma has to be a positive number.')
@@ -387,10 +388,6 @@ lp_nl <- function(endog_data,
       stop('The maximum number of lags can only be used if a lag length criterion is given.')
     }
 
-  # Give message if no use_hp is used but gamma and lambda given
-    if(specs$use_hp == 0 & !is.null(specs$lambda)){
-      message('A provided value for lambda will not be used as no HP-filter is applied.')
-    }
 
 
   # Safe data frame specifications in 'specs for functions

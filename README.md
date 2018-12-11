@@ -1,15 +1,15 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-<!--# lpirfs [![CRAN Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
+<!-- # lpirfs [![CRAN Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
 
-<!--[![Build Status](https://travis-ci.com/AdaemmerP/lpirfs.svg)](https://travis-ci.com/AdaemmerP/lpirfs) -->
+<!-- [![Build Status](https://travis-ci.com/AdaemmerP/lpirfs.svg)](https://travis-ci.com/AdaemmerP/lpirfs) -->
 
-<!--[![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
+<!-- [![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
 
-<!--[![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs) -->
+<!-- [![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs) -->
 
-<!--[![Coverage Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)  -->
+<!-- [![Coverage Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)  -->
 
 # About
 
@@ -21,12 +21,13 @@ local projections by [Jordà
 
   - Estimates linear and nonlinear impulse responses with local
     projections.
-  - Estimates linear impulse responses with identified shock and/or with
-    2SLS.
+  - Estimates linear and nonlinear impulse responses with identified
+    shock and/or with 2SLS.
+  - Estimates linear and nonlinear impulse responses with local
+    projections for panel data.
   - Functions to plot linear and nonlinear impulse responses.
-  - Functions are partly implemented in *Rcpp* and *RcppArmadillo* to
-    improve efficiency.
-  - High performance with parallel computation.
+  - Functions are partly implemented in *Rcpp*/*RcppArmadillo* and
+    partly written for parallel computation to improve efficiency.
 
 ## Installation
 
@@ -79,10 +80,6 @@ am grateful to Philipp Dybowski for his comments and without whom I
 would have never started this project.
 
 All remaining errors are obviously mine.
-
-## Development
-
-I am currently working on a function for panel-lp estimation.
 
 ### Author
 

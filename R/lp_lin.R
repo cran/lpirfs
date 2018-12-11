@@ -4,10 +4,10 @@
 #'
 #' @param endog_data A \link{data.frame}, containing the endogenous variables for the VAR. The Cholesky decomposition is based on the
 #'          column order.
-#' @param lags_criterion NaN or character. NaN means that the number of lags
+#' @param lags_criterion NaN or character. NaN (default) means that the number of lags
 #'         has to be given at \emph{lags_endog_lin}. The character specifies the lag length criterion ('AICc', 'AIC' or 'BIC').
 #' @param lags_endog_lin NaN or integer. NaN if lag length criterion is used. Integer for number of lags for \emph{endog_data}.
-#' @param max_lags NaN or integer. Maximum number of lags if \emph{lags_criterion} is given. NaN otherwise.
+#' @param max_lags NaN or integer. Maximum number of lags if \emph{lags_criterion} is given. NaN (default) otherwise.
 #' @param trend Integer. No trend =  0 , include trend = 1, include trend and quadratic trend = 2.
 #' @param shock_type Integer. Standard deviation shock = 0, unit shock = 1.
 #' @param confint Double. Width of confidence bands. 68\% = 1; 90\% = 1.65; 95\% = 1.96.
@@ -56,10 +56,9 @@
 #' Schwarz, Gideon E. (1978). "Estimating the dimension of a model", \emph{Annals of Statistics}, 6 (2): 461–464.
 #'
 #' @author Philipp Adämmer
-#' @import foreach
+#' @importFrom foreach foreach
 #' @examples
 #'\donttest{
-#'
 #'           ## Example without exogenous variables
 #'
 #'# Load package
@@ -71,16 +70,10 @@
 #'# Estimate linear model
 #'   results_lin <- lp_lin(endog_data,
 #'                              lags_endog_lin = 4,
-#'                              exog_data      = NULL,
-#'                              lags_exog      = NULL,
-#'                              lags_criterion = NaN,
-#'                              max_lags       = NaN,
 #'                              trend          = 0,
 #'                              shock_type     = 1,
 #'                              confint        = 1.96,
-#'                              hor            = 12,
-#'                              contemp_data   = NULL,
-#'                              num_cores      = NULL)
+#'                              hor            = 12)
 #'
 #'# Make plots
 #'  linear_plots <- plot_lin(results_lin)
@@ -121,16 +114,13 @@
 #'# Estimate linear model
 #'   results_lin <- lp_lin(endog_data,
 #'                                lags_endog_lin = 4,
-#'                                lags_criterion = NaN,
-#'                                max_lags       = NaN,
 #'                                trend          = 0,
 #'                                shock_type     = 1,
 #'                                confint        = 1.96,
 #'                                hor            = 12,
 #'                                exog_data      = exog_data,
 #'                                lags_exog      = 4,
-#'                                contemp_data   = contemp_data,
-#'                                num_cores      = NULL)
+#'                                contemp_data   = contemp_data)
 #'
 #'# Make plots
 #'  linear_plots <- plot_lin(results_lin)
@@ -146,8 +136,8 @@
 #'  }
 lp_lin <- function(endog_data,
                         lags_endog_lin = NULL,
-                        lags_criterion = NULL,
-                        max_lags       = NULL,
+                        lags_criterion = NaN,
+                        max_lags       = NaN,
                         trend          = NULL,
                         shock_type     = NULL,
                         confint        = NULL,
@@ -172,7 +162,7 @@ lp_lin <- function(endog_data,
     specs$lags_exog      <- lags_exog
 
   # Set 2SLS option to FALSE
-    specs$twosls <- FALSE
+    specs$use_twosls <- FALSE
 
     # Add 'contempranoeus' as NULL for data construction
     specs$contemp_data   <- contemp_data
@@ -183,16 +173,6 @@ lp_lin <- function(endog_data,
   if(!(is.data.frame(endog_data))){
     stop('The data has to be a data.frame().')
   }
-
-  # Give message when no linear model is provided
-    if(is.null(exog_data)){
-      message('You estimate the model without exogenous data.')
-    }
-
-    # Give message when no contemporaneous data is provided
-    if(is.null(contemp_data)){
-      message('You estimate the model without exogenous data with contemporaneous impact.')
-    }
 
   # Check whether 'trend' is given
   if(is.null(specs$trend)){
@@ -324,7 +304,7 @@ lp_lin <- function(endog_data,
 
   # Make cluster
   if(is.null(num_cores)){
-    num_cores     <- min(specs$endog, parallel::detectCores() - 1)
+    num_cores    <- min(specs$endog, parallel::detectCores() - 1)
   }
 
   cl             <- parallel::makeCluster(num_cores)

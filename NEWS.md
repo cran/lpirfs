@@ -1,9 +1,32 @@
+# lpirfs 0.1.4
+
+* Added two functions to estimate linear and nonlinear irfs for panel data.
+
+* Added an option to choose whether to use lagged values of the switching variable in 
+  nonlinear models. 
+
+* Added an option to use a dummy approach for the nonlinear models.
+
+* Deleted messages about how models are estimated (e.g. with or without exogenous data).
+
+* Changed input name in `lp_lin_iv()` for consistency:
+
+function | old input name | new input name
+:--------|:-------------  |:------------- 
+`lp_lin_iv()` | `twosls`     | `use_twosls`
+
+
+
 # lpirfs 0.1.3
 
 * Included an option to conduct 2SLS with *lp_lin_iv*.
+
 * Included an option to set the lag length of the endogenous variables in *lp_lin_iv* and *lp_nl_iv* to zero.
+
 * Deleted the deprecated plot functions *plot_lin_irfs* and *plot_nl_irfs*.
+
 * Improved documentation.
+
 * Changed input names in `lp_lin_iv()` and `lp_nl_iv()` for consistency:
 
 function | old input name | new input name

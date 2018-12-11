@@ -6,9 +6,10 @@
 \usage{
 lp_nl_iv(endog_data, lags_endog_nl = NULL, shock = NULL,
   instr = NULL, exog_data = NULL, lags_exog = NULL,
-  contemp_data = NULL, lags_criterion = NULL, max_lags = NULL,
+  contemp_data = NULL, lags_criterion = NaN, max_lags = NaN,
   trend = NULL, confint = NULL, hor = NULL, switching = NULL,
-  use_hp = NULL, lambda = NULL, gamma = NULL, num_cores = NULL)
+  lag_switching = TRUE, use_logistic = TRUE, use_hp = NULL,
+  lambda = NULL, gamma = NULL, num_cores = NULL)
 }
 \arguments{
 \item{endog_data}{A \link{data.frame}, containing all endogenous variables for the VAR.}
@@ -48,6 +49,11 @@ If the variable shall not be lagged, the vector has to be given with a lead of o
 The data for the two regimes are: \cr
 Regime 1 = (1-\eqn{F(z_{t-1})})*y_{(t-p)}, \cr
 Regime 2 = \eqn{F(z_{t-1})}*y_{(t-p)}.}
+
+\item{lag_switching}{Boolean. Use the first lag of the values of the transition function? TRUE (default) or FALSE.}
+
+\item{use_logistic}{Boolean. Use logistic function to separate states? TRUE (default) or FALSE. If FALSE, the values of the switching variable
+have to be binary (0/1).}
 
 \item{use_hp}{Boolean. Use HP-filter? TRUE or FALSE.}
 
@@ -90,8 +96,8 @@ A list containing:
 }
 \description{
 Compute nonlinear impulse responses with local projections and identified shock.
-The data are separated into two states via a smooth transition
-function as applied in Auerbach and Gorodnichenko (2012).
+The data can be separated into two states by a smooth transition function as applied in Auerbach and Gorodnichenko (2012),
+or by a simple dummy approach.
 }
 \examples{
 \donttest{
@@ -122,20 +128,12 @@ function as applied in Auerbach and Gorodnichenko (2012).
                            shock             = shock,
                            exog_data         = exog_data,
                            lags_exog         = 4,
-                           contemp_data      = NULL,
-                           lags_criterion    = NaN,
-                           max_lags          = NaN,
                            trend             = 0,
                            confint           = 1.96,
                            hor               = 20,
                            switching         = switching_variable,
-                           use_hp            = 0,
-                           lambda            = NaN, # Ravn and Uhlig (2002):
-                                                    # Annual data    = 6.25
-                                                    # Quarterly data = 1600
-                                                    # Monthly data   = 129,600
-                           gamma             = 3,
-                           num_cores         = NULL)
+                           use_hp            = FALSE,
+                           gamma             = 3)
 
 # Make and save plots
  plots_nl_iv <- plot_nl(results_nl_iv)

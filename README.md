@@ -1,15 +1,15 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-<!-- # lpirfs [![CRAN Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
+# lpirfs [![CRAN Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.org/package=lpirfs)
 
-<!-- [![Build Status](https://travis-ci.com/AdaemmerP/lpirfs.svg)](https://travis-ci.com/AdaemmerP/lpirfs) -->
-
-<!-- [![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
-
-<!-- [![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs) -->
-
-<!-- [![Coverage Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)  -->
+[![Build
+Status](https://travis-ci.com/AdaemmerP/lpirfs.svg)](https://travis-ci.com/AdaemmerP/lpirfs)
+[![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs)
+[![Total
+Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs)
+[![Coverage
+Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)
 
 # About
 
@@ -73,11 +73,13 @@ comments and helpful suggestions. I am also indebted to Sarah
 Matlab code before the publication of their
 [paper](https://www.journals.uchicago.edu/doi/10.1086/696277).
 
-I greatly benefit from the profound *R*, *Rcpp* and *GitHub* knowledge
-of Philipp [Wittenberg](https://github.com/wittenberg) and Detlef
-(overflow) [Steuer](https://github.com/dsteuer). Last but not least, I
-am grateful to Philipp Dybowski for his comments and without whom I
-would have never started this project.
+I greatly benefit from the helpful and critical remarks by Jon
+[Danielsson](http://www.systemicrisk.ac.uk/people/jon-danielsson) and
+from the profound *R*, *Rcpp* and *GitHub* knowledge of Philipp
+[Wittenberg](https://github.com/wittenberg) and Detlef (overflow)
+[Steuer](https://github.com/dsteuer). Last but not least, I am grateful
+to Philipp Dybowski without whom I would have never started this
+project.
 
 All remaining errors are obviously mine.
 

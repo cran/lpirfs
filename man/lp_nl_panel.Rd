@@ -134,6 +134,7 @@ This function estimates nonlinear impulse responses by using local projections f
 # Swap the first two columns so that 'country' is the first (cross section) and 'year' the
 # second (time section) column
  jst_data <- jst_data \%>\%
+             dplyr::filter(year <= 2013) \%>\%
              dplyr::select(country, year, everything())
 
 # Prepare variables. This is based on the 'data.do' file
@@ -165,8 +166,7 @@ This function estimates nonlinear impulse responses by using local projections f
 # Use data_sample from 1870 to 2013 and exclude observations from WWI and WWII
   data_sample <-   seq(1870, 2016)[which(!(seq(1870, 2016) \%in\%
                               c(seq(1914, 1918),
-                                seq(1939, 1947),
-                                seq(2014, 2016))))]
+                                seq(1939, 1947))))]
 
 # Estimate panel model
 results_panel <-  lp_nl_panel(data_set           = data_set,
@@ -205,7 +205,7 @@ results_panel <-  lp_nl_panel(data_set           = data_set,
  library(dplyr)
 
  data_set \%>\%
-    mutate(fz = results_panel$fz) \%>\%
+    mutate(fz = results_panel$fz$fz) \%>\%
     select(country, year, fz)     \%>\%
     filter(country == "USA" & year > 1950  & year <= 2016) \%>\%
     ggplot()+

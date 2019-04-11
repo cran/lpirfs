@@ -48,6 +48,7 @@ create_panel_data <- function(specs, data_set){
       # Create cumulative endogenous vector
       y_data[[ii + 1]]     <-  data_set %>%
                                 dplyr::select(cross_id, date_id, specs$endog_data) %>%
+                                dplyr::group_by(cross_id)                          %>%
                                 dplyr::mutate_at(vars(specs$endog_data),
                                        funs(cumul_function(., ii)))                %>%
                                 dplyr::ungroup()
@@ -62,14 +63,17 @@ create_panel_data <- function(specs, data_set){
       # Create lead endogenous vectors
       y_data[[ii + 1]]     <-  data_set %>%
                                 dplyr::select(cross_id, date_id, specs$endog_data)  %>%
+                                dplyr::group_by(cross_id)                  %>%
                                 dplyr::mutate_at(vars(specs$endog_data ),
-                                                 funs(dplyr::lead(., ii)))
+                                                 funs(dplyr::lead(., ii))) %>%
+                                dplyr::ungroup()
     }
 
   }
 
 
-  # Choose shock variable
+  # Choose shock variable and make a data frame called 'x_reg_data' which will
+  # be filled with the other variables continously
   x_reg_data    <- data_set %>%
                    dplyr::select(cross_id, date_id,  specs$shock)
 
@@ -77,9 +81,11 @@ create_panel_data <- function(specs, data_set){
   # Take first differences of shock variable?
   if(isTRUE(specs$diff_shock)){
 
-    x_reg_data    <- x_reg_data %>%
-                      dplyr::mutate_at(vars(specs$shock), diff_function) %>%
-                      dplyr::rename_at(vars(specs$shock), funs(paste0("d",.)))
+    x_reg_data    <- x_reg_data                                               %>%
+                      dplyr::group_by(cross_id)                                %>%
+                      dplyr::mutate_at(vars(specs$shock), diff_function)       %>%
+                      dplyr::rename_at(vars(specs$shock), funs(paste0("d",.))) %>%
+                      dplyr::ungroup()
 
     # Rename shock variable
     specs$shock   <- colnames(x_reg_data)[which(!(colnames(x_reg_data) %in% c("cross_id", "date_id")))]
@@ -202,6 +208,7 @@ create_panel_data <- function(specs, data_set){
     ld_x_data     <- d_x_data            %>%
                       group_by(cross_id) %>%
                       mutate_at(vars(specs$l_fd_exog_data), funs_(lag_functions)) %>%
+                      ungroup()                                                   %>%
                       dplyr::select(cross_id, date_id, contains("lag_"))
 
     # Use lags of first differences as regressors
@@ -229,7 +236,16 @@ create_panel_data <- function(specs, data_set){
         # Use first lag of value from switching function?
         if(isTRUE(specs$lag_switching)){
 
-          fz            <-    dplyr::lag(fz, 1)
+          fz_df <- tibble(cross_id = data_set$cross_id, date_id = data_set$date_id,
+                          fz = fz[, 1])
+
+          fz_df <- fz_df %>%
+                   dplyr::group_by(cross_id)                              %>%
+                   dplyr::mutate_at(vars(fz), funs(lag_function(., 1)))   %>%
+                   dplyr::ungroup()
+
+          fz    <- fz_df$fz
+
 
         }
 
@@ -249,7 +265,9 @@ create_panel_data <- function(specs, data_set){
     if(isTRUE(specs$diff_shock)){
 
     shock          <- shock %>%
-                       dplyr::mutate_at(vars(shock), diff_function)
+                       dplyr::group_by(cross_id) %>%
+                       dplyr::mutate_at(vars(shock), diff_function) %>%
+                       dplyr::ungroup()
     }
 
 

@@ -56,11 +56,12 @@
 #'
 #'\item{specs}{A list with data properties for e.g. the plot function.}
 #'
-#' @importFrom dplyr lead lag filter
+#' @importFrom dplyr lead lag filter arrange
 #' @importFrom plm plm
 #' @importFrom lmtest coeftest
 #' @importFrom foreach foreach
 #' @importFrom sandwich vcovHC
+#' @importFrom stats variable.names
 #' @export
 #'
 #' @references
@@ -98,6 +99,7 @@
 #'# Swap the first two columns so that 'country' is the first (cross section) and 'year' the
 #'# second (time section) column
 #'  jst_data <- jst_data %>%
+#'              dplyr::filter(year <= 2013) %>%
 #'              dplyr::select(country, year, everything())
 #'
 #'# Prepare variables. This is based on the 'data.do' file
@@ -126,10 +128,9 @@
 #'
 #'
 #'# Use data_sample from 1870 to 2013 and exclude observations during WWI and WWII
-#'   data_sample <-   seq(1870, 2016)[which(!(seq(1870, 2016) %in%
+#'   data_sample <-   seq(1870, 2013)[which(!(seq(1870, 2016) %in%
 #'                               c(seq(1914, 1918),
-#'                                 seq(1939, 1947),
-#'                                 seq(2014, 2016))))]
+#'                                 seq(1939, 1947))))]
 #'
 #'# Estimate panel model
 #' results_panel <-  lp_lin_panel(data_set          = data_set,
@@ -373,10 +374,20 @@ lp_lin_panel <- function(
     stop('Please verify that each column name is unique.')
   }
 
+  # Verify that column names do not include the string pattern "lag_"
+  if(length(grep("lag_", colnames(data_set))) >= 1){
+    stop('Please do not use column names that include the string "lag_" in the name.
+         This cause later naming problems')
+  }
+
 
   # Rename first two column of data.frame
   colnames(data_set)[1]     <- "cross_id"
   colnames(data_set)[2]     <- "date_id"
+
+  # Sort data_set by cross_id, then by year
+  data_set <- data_set %>%
+              dplyr::arrange(cross_id, date_id)
 
   # Create list to store inputs
   specs <- list()
@@ -557,19 +568,40 @@ lp_lin_panel <- function(
 
       }
 
+
+      # Extract the position of the parameters of the shock variable
+        shock_position <- which(stats::variable.names(t(reg_results)) == specs$shock)
+
+      # If shock variable could not be found, stop estimation and give message
+      if(is.integer(shock_position) && length(shock_position) == 0){
+        stop("The shock variable has been dropped during the estimation. The
+                 impulse responses can not be estimated.")
+      }
+
+
+
       # Estimate irfs and confidence bands
-      irf_panel_mean[[1, ii]]   <- reg_results[1, 1]
-      irf_panel_up[[1,   ii]]   <- reg_results[1, 1] + specs$confint*reg_results[1,2]
-      irf_panel_low[[1,  ii]]   <- reg_results[1, 1] - specs$confint*reg_results[1,2]
+      irf_panel_mean[[1, ii]]   <- reg_results[shock_position, 1]
+      irf_panel_up[[1,   ii]]   <- reg_results[shock_position, 1] + specs$confint*reg_results[shock_position, 2]
+      irf_panel_low[[1,  ii]]   <- reg_results[shock_position, 1] - specs$confint*reg_results[shock_position, 2]
 
                              }      else      {
 
       reg_results <- summary(panel_results)
 
+      # Extract the position of the parameters of the shock variable
+      shock_position <- which(stats::variable.names(t(reg_results$coef)) == specs$shock)
+
+      # If shock variable could not be found, stop estimation and give message
+      if(is.integer(shock_position) && length(shock_position) == 0){
+        stop("The shock variable was dropped during the estimation, perhaps because of co-linearity or identification issues.
+               As a consequence, the  impulse responses can not be estimated.")
+      }
+
       # Estimate irfs and confidence bands
-      irf_panel_mean[[1, ii]]   <- reg_results$coefficients[1, 1]
-      irf_panel_up[[1,   ii]]   <- reg_results$coefficients[1, 1] + specs$confint*reg_results$coefficients[1,2]
-      irf_panel_low[[1,  ii]]   <- reg_results$coefficients[1, 1] - specs$confint*reg_results$coefficients[1,2]
+      irf_panel_mean[[1, ii]]   <- reg_results$coefficients[shock_position, 1]
+      irf_panel_up[[1,   ii]]   <- reg_results$coefficients[shock_position, 1] + specs$confint*reg_results$coefficients[shock_position, 2]
+      irf_panel_low[[1,  ii]]   <- reg_results$coefficients[shock_position, 1] - specs$confint*reg_results$coefficients[shock_position, 2]
 
     }
 
@@ -585,6 +617,7 @@ lp_lin_panel <- function(
               irf_panel_up     = irf_panel_up,
               reg_summaries    = reg_summaries,
               xy_data_sets     = xy_data_sets,
+              y_data           = y_data,
               specs            = specs
               ))
 

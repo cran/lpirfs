@@ -75,3 +75,5 @@
 #'
 #' @source \url{https://www.aeaweb.org/articles?id=10.1257/0002828053828518}
 "monetary_var_data"
+
+

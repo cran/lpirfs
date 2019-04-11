@@ -1,3 +1,23 @@
+# lpirfs 0.1.5
+
+* Fixed a bug for *lp_lin_panel()* and *lp_nl_panel()* regarding the construction of the 
+  endogenous and exogenous variables.
+
+* Fixed a bug for *lp_nl_panel()* when using the switching variable. 
+
+* Fixed a bug for *lp_lin_panel()* and *lp_nl_panel()* when a pooling model is specified.
+
+* New checks for *lp_lin_panel()* and *lp_nl_panel()* to see whether shock variable has been dropped during estimation, 
+  potentially because of co-linearity or identification issues.
+  
+* *lp_nl_panel()* now returns the (transformed) switching variable as a *tibble* along with the original data
+  for comparabaility.
+  
+* Updated documentation.  
+
+* Updated examples.
+  
+
 # lpirfs 0.1.4
 
 * Added two functions to estimate linear and nonlinear irfs for panel data.

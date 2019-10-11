@@ -6,8 +6,9 @@
 \usage{
 lp_lin(endog_data, lags_endog_lin = NULL, lags_criterion = NaN,
   max_lags = NaN, trend = NULL, shock_type = NULL, confint = NULL,
-  hor = NULL, exog_data = NULL, lags_exog = NULL,
-  contemp_data = NULL, num_cores = NULL)
+  use_nw = TRUE, nw_lag = NULL, nw_prewhite = FALSE,
+  adjust_se = FALSE, hor = NULL, exog_data = NULL,
+  lags_exog = NULL, contemp_data = NULL, num_cores = 1)
 }
 \arguments{
 \item{endog_data}{A \link{data.frame}, containing the endogenous variables for the VAR. The Cholesky decomposition is based on the
@@ -25,6 +26,15 @@ has to be given at \emph{lags_endog_lin}. The character specifies the lag length
 \item{shock_type}{Integer. Standard deviation shock = 0, unit shock = 1.}
 
 \item{confint}{Double. Width of confidence bands. 68\% = 1; 90\% = 1.65; 95\% = 1.96.}
+
+\item{use_nw}{Boolean. Use Newey-West (1987) standard errors for impulse responses? TRUE (default) or FALSE.}
+
+\item{nw_lag}{Integer. Specifies the maximum lag with positive weight for the Newey-West estimator. If set to NULL (default), the lag increases with
+with the number of horizon.}
+
+\item{nw_prewhite}{Boolean. Should the estimators be pre-whitened? TRUE or FALSE (default).}
+
+\item{adjust_se}{Boolen. Should a finite sample adjsutment be made to the covariance matrix estimators? TRUE or FALSE (default).}
 
 \item{hor}{Integer. Number of horizons for impulse responses.}
 
@@ -55,6 +65,9 @@ A list containing:
 \item{irf_lin_up}{A three 3D \link{array} containing all upper confidence bands of the responses,
                    based on robust standard errors by Newey and West (1987). Properties are equal to \emph{irf_lin_mean}.}
 
+\item{diagnostic_list}{A list OLS diagnostics. To see everything you can simply use summary() or results$diagnostic_list. The first entry
+the shock variable. The rows of each shown matrix then denotes the endogenous variable that reacts to the shock.}
+
 \item{specs}{A list with properties of \emph{endog_data} for the plot function. It also contains
             lagged data (y_lin and x_lin) used for the irf estimations.}
 }
@@ -79,7 +92,11 @@ Compute linear impulse responses with local projections by Jordà (2005).
                              confint        = 1.96,
                              hor            = 12)
 
-# Make plots
+# Show all impule responses
+# Compare with Figure 5 in Jordà (2005)
+ plot(results_lin)
+
+# Make individual plots
  linear_plots <- plot_lin(results_lin)
 
 # Show single plots
@@ -92,14 +109,9 @@ Compute linear impulse responses with local projections by Jordà (2005).
   linear_plots[[1]]
   linear_plots[[2]]
 
-# Show all plots by using 'ggpubr' and 'gridExtra'
-# lpirfs does not depend on those packages so they have to be installed
- library(ggpubr)
- library(gridExtra)
 
-# Compare with Figure 5 in Jordà (2005)
- lin_plots_all <- sapply(linear_plots, ggplotGrob)
- marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = ncol(endog_data), top = NULL)
+# Show diagnostics. The first element correponds to the first shock variable.
+ summary(results_lin)
 
 
                       ## Example with exogenous variables ##
@@ -126,16 +138,11 @@ Compute linear impulse responses with local projections by Jordà (2005).
                                lags_exog      = 4,
                                contemp_data   = contemp_data)
 
-# Make plots
- linear_plots <- plot_lin(results_lin)
+# Show all impulse responses
+ plot(results_lin)
 
-# Show all plots
- library(ggpubr)
- library(gridExtra)
-
- lin_plots_all <- sapply(linear_plots, ggplotGrob)
- marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = ncol(endog_data), top = NULL)
-
+# Show diagnostics. The first element correponds to the first shock variable.
+ summary(results_lin)
 
  }
 }

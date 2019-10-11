@@ -139,11 +139,9 @@
 #'                                confint           = 1.67,
 #'                                hor               = 5)
 #'
-#'# Create and plot irfs
-#'  nl_plots <- plot_nl(results_panel)
+#'# Plot irfs
+#'  plot(results_panel)
 #'
-#'  plot(nl_plots$gg_s1[[1]])
-#'  plot(nl_plots$gg_s2[[1]])
 #'
 #'# Plot values of the transition function for USA between 1950 and 2016
 #'  library(ggplot2)
@@ -195,11 +193,9 @@
 #'                                confint           = 1.67,
 #'                                hor               = 5)
 #'
-#'# Create and plot irfs
-#'  nl_plots <- plot_nl(results_panel)
-#'
-#'  plot(nl_plots$gg_s1[[1]])
-#'  plot(nl_plots$gg_s2[[1]])
+#'# # Create and plot irfs
+#'  plot(results_panel)
+
 #'
 #'}
 #'
@@ -214,6 +210,11 @@ lp_nl_panel <- function(
                       panel_model        = "within",
                       panel_effect       = "individual",
                       robust_cov         = NULL,
+
+                      robust_method     = NULL,
+                      robust_type       = NULL,
+                      robust_cluster    = NULL,
+                      robust_maxlag     = NULL,
 
                       use_gmm            = FALSE,
                       gmm_model          = "onestep",
@@ -277,9 +278,9 @@ lp_nl_panel <- function(
 
   # Check whether robust covariance estimator is correctly specified
   if(!is.null(robust_cov)){
-    if(!robust_cov %in% c("Vw", "Vcx", "Vct", "Vcxt", "vcovBK", "vcovDC", "vcovG", "vcovHC", "vcovNW", "vcovSCC")){
-      stop("The choices for robust covariance estimation are 'Vw', 'Vcx', 'Vct', 'Vcxt', 'vcovBK', 'vcovDC', 'vcovG', 'vcovHC', 'vcovNW', 'vcovSCC'.
-         See the vignette of the plm package for details." )
+    if(!robust_cov %in% c("Vcxt", "vcovBK", "vcovDC", "vcovHC", "vcovNW", "vcovSCC")){
+      stop("The choices for robust covariance estimation are 'vcovBK', 'vcovDC', 'vcovHC', 'vcovNW', 'vcovSCC' and 'Vcxt'.
+         For details, see the vignette of the plm package and Miller (2017)." )
     }
   }
 
@@ -534,13 +535,14 @@ lp_nl_panel <- function(
     if(is.character(specs$robust_cov)){
 
       # Estimate robust covariance matrices
-      if(specs$robust_cov %in% c("vcovBK", "vcovDC", "vcovG", "vcovHC", "vcovNW", "vcovSCC")){
+      if(specs$robust_cov %in% c("vcovBK", "vcovDC", "vcovHC", "vcovNW", "vcovSCC")){
 
-        reg_results <-  lmtest::coeftest(panel_results, vcov. = get(specs$robust_cov, envir = environment(plm)))
+
+        reg_results <- get_robust_cov_panel(panel_results, specs)
 
                                                 } else {
 
-        reg_results <-  lmtest::coeftest(panel_results,  vcov = se_hc_panel_cluster(specs$robust_cov))
+        reg_results <-  lmtest::coeftest(panel_results,  vcov = get_robust_vcxt_panel(specs$robust_cov))
 
                                                 }
 
@@ -599,21 +601,23 @@ lp_nl_panel <- function(
   fz  <- tibble(cross_id = data_set$cross_id, date_id = data_set$date_id, switching_variable = data_set[specs$switching], fz = fz)
 
   # List to return
-  return(list(irf_s1_mean    = irf_s1_mean,
-              irf_s1_up      = irf_s1_up,
-              irf_s1_low     = irf_s1_low,
+  result <- list(irf_s1_mean        = irf_s1_mean,
+                      irf_s1_up      = irf_s1_up,
+                      irf_s1_low     = irf_s1_low,
 
-              irf_s2_mean    = irf_s2_mean,
-              irf_s2_up      = irf_s2_up,
-              irf_s2_low     = irf_s2_low,
+                      irf_s2_mean    = irf_s2_mean,
+                      irf_s2_up      = irf_s2_up,
+                      irf_s2_low     = irf_s2_low,
 
-              fz             = fz,
+                      fz             = fz,
 
-              reg_summaries  = reg_summaries,
-              xy_data_sets   = xy_data_sets,
-              specs          = specs))
+                      reg_summaries  = reg_summaries,
+                      xy_data_sets   = xy_data_sets,
+                      specs          = specs)
 
-
+  # Give object S3 name
+  class(result) <- "lpirfs_nl_panel_obj"
+  return(result)
 
 
   }

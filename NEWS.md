@@ -1,3 +1,17 @@
+# lpirfs 0.1.6
+
+
+* New S3 methods for all main functions to use *summary()* and *plot()* 
+
+* More flexible options for the HAC estimators, such as pre-whitening, sample 
+  size adjustment, etc. 
+
+* New vignette
+
+* Updated documentation
+  
+
+
 # lpirfs 0.1.5
 
 * Fixed a bug for *lp_lin_panel()* and *lp_nl_panel()* regarding the construction of the 

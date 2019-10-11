@@ -5,7 +5,7 @@
 #' @param shock A one column \link{data.frame}, including the variable to shock with. The row length has to be the same as \emph{endog_data}.
 #' When \emph{use_twosls = TRUE}, this variable will be approximated/regressed on the instrument variable(s) given in \emph{instrum}.
 #' @param instr Deprecated input name. Use \emph{shock} instead. See \emph{shock} for details.
-#' @param use_twosls Boolean. Use two stage least squares? TRUE or FALSE.
+#' @param use_twosls Boolean. Use two stage least squares? TRUE or FALSE (default).
 #' @param instrum A \link{data.frame}, containing the instrument(s) to use for 2SLS. This instrument will be used for the
 #'  variable in \emph{shock}.
 #' @param lags_endog_lin NaN or integer. NaN if lags are chosen by a lag length criterion. Integer for number of lags for \emph{endog_data}.
@@ -20,6 +20,11 @@
 #' @param max_lags NaN or integer. Maximum number of lags if \emph{lags_criterion} is a character denoting the lag length criterion. NaN otherwise.
 #' @param trend Integer. No trend =  0 , include trend = 1, include trend and quadratic trend = 2.
 #' @param confint Double. Width of confidence bands. 68\% = 1; 90\% = 1.65; 95\% = 1.96.
+#' @param use_nw Boolean. Use Newey-West (1987) standard errors for impulse responses? TRUE (default) or FALSE.
+#' @param nw_lag Integer. Specifies the maximum lag with positive weight for the Newey-West estimator. If set to NULL (default), the lag increases with
+#'               with the number of horizon.
+#' @param nw_prewhite Boolean. Should the estimators be pre-whitened? TRUE of FALSE (default).
+#' @param adjust_se Boolen. Should a finite sample adjsutment be made to the covariance matrix estimators? TRUE or FALSE (default).
 #' @param hor Integer. Number of horizons for impulse responses.
 #' @param num_cores NULL or Integer. The number of cores to use for the estimation. If NULL, the function will
 #'                  use the maximum number of cores minus one.
@@ -104,6 +109,8 @@
 #'                                confint        = 1.96,
 #'                                hor            = 20)
 #'
+#'# Show all impulse responses
+#'  plot(results_lin_iv)
 #'
 #'# Make and save plots
 #'  iv_lin_plots    <- plot_lin(results_lin_iv)
@@ -118,13 +125,9 @@
 #'# Supplementary Appendix by RZ-18.
 #'  iv_lin_plots[[1]]
 #'
-#'# Show all impulse responses by using 'ggpubr' and 'gridExtra'
-#'# lpirfs does not depend on those packages so they have to be installed
-#'  library(ggpubr)
-#'  library(gridExtra)
 #'
-#'  lin_plots_all <- sapply(iv_lin_plots, ggplotGrob)
-#'  marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = 1, top = NULL)
+#'# Show diagnostics. The first element shows the reaction of the first given endogenous variable.
+#'  summary(results_lin_iv)
 #'
 #'
 #'## Add lags of the identified shock ##
@@ -149,10 +152,11 @@
 #'                                hor            = 20)
 #'
 #'
-#'# Make and save plots
-#'  iv_lin_plots    <- plot_lin(results_lin_iv)
-#'  lin_plots_all   <- sapply(iv_lin_plots, ggplotGrob)
-#'  marrangeGrob(lin_plots_all, nrow = ncol(endog_data), ncol = 1, top = NULL)
+#'# Show all responses
+#'  plot(results_lin_iv)
+#'
+#'# Show diagnostics. The first element shows the reaction of the first endogenous variable.
+#'  summary(results_lin_iv)
 #'
 #'
 #'##############################################################################
@@ -186,12 +190,9 @@
 #'                             confint        = 1.96,
 #'                             hor            = 20)
 #'
-#'# Create all plots
-#'  iv_lin_plots    <- plot_lin(results_lin_iv)
+#'# Show all responses
+#'  plot(results_lin_iv)
 #'
-#'
-#'# Show response of GDP
-#'  iv_lin_plots[[3]]
 #' }
 #'
 #'
@@ -208,8 +209,12 @@ lp_lin_iv <- function(endog_data,
                    max_lags       = NaN,
                    trend          = NULL,
                    confint        = NULL,
+                   use_nw         = TRUE,
+                   nw_lag         = NULL,
+                   nw_prewhite    = FALSE,
+                   adjust_se      = FALSE,
                    hor            = NULL,
-                   num_cores      = NULL){
+                   num_cores      = 1){
 
   # Give warning if 'instr' is used as input name
   if(!is.null(instr)){
@@ -323,8 +328,14 @@ lp_lin_iv <- function(endog_data,
   specs$trend              <- trend
   specs$confint            <- confint
   specs$hor                <- hor
-  specs$model_type         <- 1
 
+  specs$use_nw             <- use_nw
+  specs$nw_prewhite        <- nw_prewhite
+  specs$adjust_se          <- adjust_se
+  specs$nw_lag             <- nw_lag
+
+
+  specs$model_type         <- 1
 
 
 # Function start
@@ -348,14 +359,13 @@ lp_lin_iv <- function(endog_data,
   specs$z_lin  <- z_lin
 
 
-
 # Matrices to store OLS parameters
   b1        <- matrix(NaN, specs$endog, specs$endog)
   b1_low    <- matrix(NaN, specs$endog, specs$endog)
   b1_up     <- matrix(NaN, specs$endog, specs$endog)
 
 # Matrices to store irfs for each horizon
-  irf_mean  <-  matrix(NaN, specs$endog, specs$hor)
+  irf_mean  <-  matrix(NaN, 1, specs$hor)
   irf_low   <-  irf_mean
   irf_up    <-  irf_mean
 
@@ -364,7 +374,10 @@ lp_lin_iv <- function(endog_data,
   irf_lin_low   <-  irf_lin_mean
   irf_lin_up    <-  irf_lin_mean
 
-# Make cluster
+# Make matrix to store OLS diagnostics for each endogenous variable k
+  diagnost_ols_each_h           <- matrix(NaN, specs$hor, 4)
+  rownames(diagnost_ols_each_h) <- paste("h", 1:specs$hor, sep = " ")
+  colnames(diagnost_ols_each_h) <- c("R-sqrd.", "Adj. R-sqrd.", "F-stat", " p-value")
 
 # Make cluster
   if(is.null(num_cores)){
@@ -379,7 +392,7 @@ if(is.nan(specs$lags_criterion) == TRUE){
 
   # Loops to estimate local projections
   lin_irfs <- foreach(s         = 1:specs$endog,
-                      .packages = 'lpirfs')  %dopar%{ # Accounts for the shocks
+                      .packages = 'lpirfs')  %dopar%{ # Accounts for the reaction of the endogenous variable
 
                         for (h in 1:(specs$hor)){   # Accounts for the horizons
 
@@ -387,59 +400,93 @@ if(is.nan(specs$lags_criterion) == TRUE){
                           yy  <-   y_lin[h : dim(y_lin)[1], ]
                           xx  <-   x_lin[1 : (dim(x_lin)[1] - h + 1), ]
 
+                          # Check whether data are matrices to correctly extract values
                           if(!is.matrix(xx)){
-                          xx  <- as.matrix(xx)
+                             xx  <- as.matrix(xx)
                           }
 
-                          for (k in 1:specs$endog){ # Accounts for the reactions of the endogenous variables
+                          if(!is.matrix(yy)){
+                             yy  <- matrix(yy)
+                          }
+
+                          # Set lag number for Newey-West (1987)
+                          if(is.null(nw_lag)){
+
+                            lag_nw <- h
+
+                             } else {
+
+                            lag_nw <- nw_lag
+
+                          }
 
                             # Check whether use OLS or 2sls
                             if(specs$use_twosls == FALSE){
 
-                              # Estimate OLS betas and newey west std.err
-                                if(specs$endog == 1 ){
-                                  nw_results   <- lpirfs::newey_west(yy, xx, h)
-                                             } else {
-                                  nw_results   <- lpirfs::newey_west(yy[, k], xx, h)
-                                }
-                                      }   else   {
+                              # Get standard errors and point estimates
+                              get_ols_vals <- lpirfs::get_std_err(yy, xx, lag_nw, s, specs)
+                              std_err      <- get_ols_vals[[1]]
+                              b            <- get_ols_vals[[2]]
+
+                              # Get diagnostocs for summary
+                              get_diagnost                  <- lpirfs::ols_diagnost(yy[, s], xx)
+                              diagnost_ols_each_h[h, 1]     <- get_diagnost[[3]]
+                              diagnost_ols_each_h[h, 2]     <- get_diagnost[[4]]
+                              diagnost_ols_each_h[h, 3]     <- get_diagnost[[5]]
+                              diagnost_ols_each_h[h, 4]     <- stats::pf(get_diagnost[[5]], get_diagnost[[6]], get_diagnost[[7]], lower.tail = F)
+
+                                         }   else   {
 
                                # Extract instrument matrix and save as matrix
                                 zz <- specs$z_lin[1 : (dim(z_lin)[1] - h + 1), ] %>%
                                       as.matrix()
 
-                                # Estimate 2SLS betas and newey west std.err
-                                if(specs$endog == 1 ){
-                                  nw_results   <- lpirfs::newey_west_tsls(yy, xx, zz, h)
-                                              }   else   {
-                                  nw_results   <- lpirfs::newey_west_tsls(yy[, k], xx, zz, h)
-                                }
+
+                              get_tsls_vals  <-   get_std_err_tsls(yy, xx, lag_nw, s, zz,  specs)
+                              b              <-   get_tsls_vals[[2]]
+                              std_err        <-   get_tsls_vals[[1]]
+
+
+                              # Get diagnostocs for summary
+                              get_diagnost                  <- lpirfs::ols_diagnost(yy[, s], xx)
+                              diagnost_ols_each_h[h, 1]     <- get_diagnost[[3]]
+                              diagnost_ols_each_h[h, 2]     <- get_diagnost[[4]]
+                              diagnost_ols_each_h[h, 3]     <- get_diagnost[[5]]
+                              diagnost_ols_each_h[h, 4]     <- stats::pf(get_diagnost[[5]], get_diagnost[[6]], get_diagnost[[7]], lower.tail = F)
+
 
                             }
 
-                            b              <- nw_results[[1]]
-                            std_err        <- sqrt(diag(nw_results[[2]]))*specs$confint
+                            # Fill matrices with local projections
+                            irf_mean[1, h]  <-  b[2]
+                            irf_low[1,  h]  <-  b[2] - std_err[2]
+                            irf_up[1,   h]  <-  b[2] + std_err[2]
 
-                            irf_mean[k, h]  <-  b[2]
-                            irf_low[k,  h]  <-  b[2] - std_err[2]
-                            irf_up[k,   h]  <-  b[2] + std_err[2]
 
-                          }
                         }
 
                         # Return irfs
-                        return(list(irf_mean,  irf_low,  irf_up))
+                        return(list(irf_mean,  irf_low,  irf_up, diagnost_ols_each_h))
                       }
+
+
+
+  # List for OLS diagnostics
+  diagnostic_list             <- list()
 
   # Fill arrays with irfs
   for(i in 1:specs$endog){
 
-    # Fill irfs
-    irf_lin_mean[ , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][1]))
-    irf_lin_low[  , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][2]))
-    irf_lin_up[   , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][3]))
+    irf_lin_mean[i , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][1]))
+    irf_lin_low[i  , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][2]))
+    irf_lin_up[i   , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][3]))
+
+    diagnostic_list[[i]] <-  lin_irfs[[i]][[4]]
 
   }
+
+  # Name the list of diagnostics
+   names(diagnostic_list)  <- paste("Endog. Variable:", specs$column_names , sep = " ")
 
 
   ################################################################################
@@ -454,22 +501,31 @@ if(is.nan(specs$lags_criterion) == TRUE){
 
   # Loops to estimate local projections.
   lin_irfs <- foreach(s          = 1:specs$endog,
-                      .packages   = 'lpirfs')  %dopar% {
+                      .packages   = 'lpirfs')  %dopar% { # Accounts for the reaction of the endogenous variable
 
                         for (h in 1:specs$hor){     # Accounts for the horizon
 
-                          for (k in 1:specs$endog){ # Accounts for endogenous reactions
+                          # Set lag number for Newey-West (1987)
+                          if(is.null(nw_lag)){
+
+                            lag_nw <- h
+
+                          } else {
+
+                            lag_nw <- nw_lag
+
+                          }
 
                             # Find optimal lags
                             n_obs         <- nrow(y_lin[[1]]) - h + 1 # Number of observations for model with lag one
-                            val_criterion <- lpirfs::get_vals_lagcrit(y_lin, x_lin, lag_crit, h, k,
+                            val_criterion <- lpirfs::get_vals_lagcrit(y_lin, x_lin, lag_crit, lag_nw, s,
                                                                       specs$max_lags, n_obs)
 
                             # Set optimal lag length
                             lag_choice  <- which.min(val_criterion)
 
                             # Extract matrices based on optimal lag length
-                            yy <- y_lin[[lag_choice]][, k]
+                            yy <- y_lin[[lag_choice]][, s]
                             yy <- yy[h: length(yy)]
 
                             xx <- x_lin[[lag_choice]]
@@ -478,8 +534,18 @@ if(is.nan(specs$lags_criterion) == TRUE){
                             # Check whether use OLS or 2sls
                             if(specs$use_twosls == FALSE){
 
-                                # Estimate coefficients and newey west std.err
-                                nw_results     <- lpirfs::newey_west(yy, xx, h)
+                              # Get standard errors and point estimates
+                              get_ols_vals <- lpirfs::get_std_err(yy, xx, lag_nw, 1, specs)
+                              std_err      <- get_ols_vals[[1]]
+                              b            <- get_ols_vals[[2]]
+
+                              # Get diagnostocs for summary
+                              get_diagnost                  <- lpirfs::ols_diagnost(yy, xx)
+                              diagnost_ols_each_h[h, 1]     <- get_diagnost[[3]]
+                              diagnost_ols_each_h[h, 2]     <- get_diagnost[[4]]
+                              diagnost_ols_each_h[h, 3]     <- get_diagnost[[5]]
+                              diagnost_ols_each_h[h, 4]     <- stats::pf(get_diagnost[[5]], get_diagnost[[6]], get_diagnost[[7]], lower.tail = F)
+
 
                                         } else {
 
@@ -487,42 +553,68 @@ if(is.nan(specs$lags_criterion) == TRUE){
                                 zz         <- z_lin[[lag_choice]]
                                 zz         <- zz[1:(dim(zz)[1] - h + 1),]
 
-                                # Estimate 2SLS betas and newey west std.err
-                                nw_results <- lpirfs::newey_west_tsls(yy, xx, zz, h)
+
+                                get_tsls_vals  <-   get_std_err_tsls(yy, xx, lag_nw, 1, zz,  specs)
+                                b              <-   get_tsls_vals[[2]]
+                                std_err        <-   get_tsls_vals[[1]]
+
+                                # Get diagnostocs for summary
+                                get_diagnost                  <- lpirfs::ols_diagnost(yy, xx)
+                                diagnost_ols_each_h[h, 1]     <- get_diagnost[[3]]
+                                diagnost_ols_each_h[h, 2]     <- get_diagnost[[4]]
+                                diagnost_ols_each_h[h, 3]     <- get_diagnost[[5]]
+                                diagnost_ols_each_h[h, 4]     <- stats::pf(get_diagnost[[5]], get_diagnost[[6]], get_diagnost[[7]], lower.tail = F)
+
+
+
+
                             }
 
-                            b              <- nw_results[[1]]
-                            std_err        <- sqrt(diag(nw_results[[2]]))*specs$confint
+                            # Fill matrices with local projections
+                            irf_mean[1, h]  <-  b[2]
+                            irf_low[1,  h]  <-  b[2] - std_err[2]
+                            irf_up[1,   h]  <-  b[2] + std_err[2]
 
-                            irf_mean[k, h]  <-  b[2]
-                            irf_low[k,  h]  <-  b[2] - std_err[2]
-                            irf_up[k,   h]  <-  b[2] + std_err[2]
-
-                          }
                         }
 
-                        list(irf_mean,  irf_low,  irf_up)
+                        return(list(irf_mean,  irf_low,  irf_up, diagnost_ols_each_h))
                       }
+
+  # Fill list with all OLS diagnostics
+  diagnostic_list             <- list()
+
 
   # Fill arrays with irfs
   for(i in 1:specs$endog){
 
     # Fill irfs
-    irf_lin_mean[ ,]   <- as.matrix(do.call(rbind, lin_irfs[[i]][1]))
-    irf_lin_low[  ,]   <- as.matrix(do.call(rbind, lin_irfs[[i]][2]))
-    irf_lin_up[   ,]   <- as.matrix(do.call(rbind, lin_irfs[[i]][3]))
+    irf_lin_mean[i , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][1]))
+    irf_lin_low[i  , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][2]))
+    irf_lin_up[i   , ]   <- as.matrix(do.call(rbind, lin_irfs[[i]][3]))
+
+
+    diagnostic_list[[i]] <-  lin_irfs[[i]][[4]]
 
   }
 
-
-  ###################################################################################################
+  # Name the list of diagnostics
+  names(diagnostic_list)  <- paste("Endog. Variable:", specs$column_names , sep = " ")
 
 }
 
 # Close cluster
 parallel::stopCluster(cl)
 
-list(irf_lin_mean = irf_lin_mean, irf_lin_low = irf_lin_low,
-     irf_lin_up   = irf_lin_up, specs = specs)
+result <- list(irf_lin_mean      = irf_lin_mean,
+               irf_lin_low       = irf_lin_low,
+               irf_lin_up        = irf_lin_up,
+               diagnostic_list   = diagnostic_list,
+               specs             = specs)
+
+# Give object S3 name
+class(result) <- "lpirfs_lin_iv_obj"
+return(result)
+
+
 }
 

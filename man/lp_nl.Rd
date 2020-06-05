@@ -4,13 +4,31 @@
 \alias{lp_nl}
 \title{Compute nonlinear impulse responses}
 \usage{
-lp_nl(endog_data, lags_endog_lin = NULL, lags_endog_nl = NULL,
-  lags_criterion = NaN, max_lags = NaN, trend = NULL,
-  shock_type = NULL, confint = NULL, use_nw = TRUE, nw_lag = NULL,
-  nw_prewhite = FALSE, adjust_se = FALSE, hor = NULL,
-  switching = NULL, lag_switching = TRUE, use_logistic = TRUE,
-  use_hp = NULL, lambda = NULL, gamma = NULL, exog_data = NULL,
-  lags_exog = NULL, contemp_data = NULL, num_cores = 1)
+lp_nl(
+  endog_data,
+  lags_endog_lin = NULL,
+  lags_endog_nl = NULL,
+  lags_criterion = NaN,
+  max_lags = NaN,
+  trend = NULL,
+  shock_type = NULL,
+  confint = NULL,
+  use_nw = TRUE,
+  nw_lag = NULL,
+  nw_prewhite = FALSE,
+  adjust_se = FALSE,
+  hor = NULL,
+  switching = NULL,
+  lag_switching = TRUE,
+  use_logistic = TRUE,
+  use_hp = NULL,
+  lambda = NULL,
+  gamma = NULL,
+  exog_data = NULL,
+  lags_exog = NULL,
+  contemp_data = NULL,
+  num_cores = 1
+)
 }
 \arguments{
 \item{endog_data}{A \link{data.frame}, containing all endogenous variables for the VAR. The Cholesky decomposition is based on the
@@ -119,8 +137,9 @@ or by a simple dummy approach.
 
 # Load package
   library(lpirfs)
-  library(ggpubr)
   library(gridExtra)
+  library(ggpubr)
+
 
 # Load (endogenous) data
   endog_data <- interest_rules_var_data
@@ -146,11 +165,11 @@ or by a simple dummy approach.
  plot(results_nl)
 
 # Make and save all plots
-  nl_plots <- plot_nl(results_nl)
+ nl_plots <- plot_nl(results_nl)
 
 # Save plots based on states
-  s1_plots <- sapply(nl_plots$gg_s1, ggplotGrob)
-  s2_plots <- sapply(nl_plots$gg_s2, ggplotGrob)
+ s1_plots <- sapply(nl_plots$gg_s1, ggplotGrob)
+ s2_plots <- sapply(nl_plots$gg_s2, ggplotGrob)
 
 # Show first irf of each state
   plot(s1_plots[[1]])
@@ -163,7 +182,7 @@ or by a simple dummy approach.
                      ## Example with exogenous variables ##
 
 # Load (endogenous) data
-  endog_data <- interest_rules_var_data
+ endog_data <- interest_rules_var_data
 
 # Choose data for switching variable (here Federal Funds Rate)
 # Important: The switching variable does not have to be used within the VAR!

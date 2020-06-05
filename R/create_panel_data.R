@@ -18,12 +18,6 @@ create_panel_data <- function(specs, data_set){
 
   }
 
-  # Function which creates lags to be consistent with dplyr
-  lag_function  <- function(data, lag_nr){
-
-      lag_data  <- dplyr::lag(data, lag_nr)
-
-  }
 
   # Lead-lag function to create cumulative endogenous variables
   cumul_function <- function(data, hor){
@@ -50,7 +44,7 @@ create_panel_data <- function(specs, data_set){
                                 dplyr::select(cross_id, date_id, specs$endog_data) %>%
                                 dplyr::group_by(cross_id)                          %>%
                                 dplyr::mutate_at(vars(specs$endog_data),
-                                       funs(cumul_function(., ii)))                %>%
+                                       list(~cumul_function(., ii)))                %>%
                                 dplyr::ungroup()
     }
 
@@ -65,7 +59,7 @@ create_panel_data <- function(specs, data_set){
                                 dplyr::select(cross_id, date_id, specs$endog_data)  %>%
                                 dplyr::group_by(cross_id)                  %>%
                                 dplyr::mutate_at(vars(specs$endog_data ),
-                                                 funs(dplyr::lead(., ii))) %>%
+                                                 list(~dplyr::lead(., ii))) %>%
                                 dplyr::ungroup()
     }
 
@@ -84,7 +78,7 @@ create_panel_data <- function(specs, data_set){
     x_reg_data    <- x_reg_data                                               %>%
                       dplyr::group_by(cross_id)                                %>%
                       dplyr::mutate_at(vars(specs$shock), diff_function)       %>%
-                      dplyr::rename_at(vars(specs$shock), funs(paste0("d",.))) %>%
+                      dplyr::rename_at(vars(specs$shock), list(~paste0("d",.))) %>%
                       dplyr::ungroup()
 
     # Rename shock variable
@@ -106,7 +100,7 @@ create_panel_data <- function(specs, data_set){
     x_instrument   <- x_instrument %>%
                           dplyr::group_by(cross_id)                                  %>%
                           dplyr::mutate_at(vars(specs$instrum), diff_function)       %>%
-                          dplyr::rename_at(vars(specs$instrum), funs(paste0("d",.))) %>%
+                          dplyr::rename_at(vars(specs$instrum), list(~paste0("d",.))) %>%
                           dplyr::ungroup()
 
     # Rename instrument
@@ -136,25 +130,46 @@ create_panel_data <- function(specs, data_set){
   # Create lagged exogenous data
   if(!is.null(specs$l_exog_data)){
 
+    #--- Deprecated
+    # # Make lag sequence
+    # lags_exog     <- seq(specs$lags_exog_data)
+    # lag_names     <- paste("lag", lags_exog,  sep = "_")
+    #
+    # # Create lag function to use with dplyr
+    # lag_functions <- stats::setNames(paste("dplyr::lag(., ", lags_exog, ")"), lag_names)
+    #
+    # l_x_data      <-  x_data %>%
+    #                   dplyr::select(cross_id, date_id, specs$l_exog_data) %>%
+    #                   dplyr::group_by(cross_id)                           %>%
+    #                   dplyr::mutate_at(vars(specs$l_exog_data), funs_(lag_functions))  %>%
+    #                   dplyr::ungroup()                                    %>%
+    #                   dplyr::select(-specs$l_exog_data) #cross_id, date_id, contains("lag_")) #
+    # ---
 
     # Make lag sequence
-    lags_exog     <- seq(specs$lags_exog_data)
-    lag_names     <- paste("lag", lags_exog,  sep = "_")
+    lags_exog      <- seq(specs$lags_exog_data)
 
-    # Create lag function to use with dplyr
-    lag_functions <- stats::setNames(paste("dplyr::lag(., ", lags_exog, ")"), lag_names)
+    # Lag function
+    lag_functions  <- lapply(lags_exog, function(x) function(col) dplyr::lag(col, x))
 
-    l_x_data      <-  x_data %>%
-                      dplyr::select(cross_id, date_id, specs$l_exog_data) %>%
-                      dplyr::group_by(cross_id)                           %>%
-                      dplyr::mutate_at(vars(specs$l_exog_data), funs_(lag_functions))              %>%
-                      dplyr::ungroup()                                    %>%
-                      dplyr::select(cross_id, date_id, contains("lag_"))
+    # Make labels for lagged variables
+    col_lag_labels <- paste(unlist(lapply(specs$l_exog_data, rep, max(lags_exog))), "_lag_", lags_exog, sep = "")
+
+    # Make and get lagged data
+    l_x_data       <- x_data %>%
+                      dplyr::select(cross_id, date_id, specs$l_exog_data)     %>%
+                      dplyr::group_by(cross_id)                               %>%
+                      dplyr::mutate(across(specs$l_exog_data, lag_functions)) %>%
+                      dplyr::ungroup()                                        %>%
+                      dplyr::select(-specs$l_exog_data)
+
+    # Rename columns
+    colnames(l_x_data)[3:dim(l_x_data)[2]] <- col_lag_labels
 
 
     # Use lagged exogenous data as regressor
-    x_reg_data    <- suppressMessages(x_reg_data %>%
-                      dplyr::left_join(l_x_data))
+    x_reg_data        <- suppressMessages(x_reg_data %>%
+                         dplyr::left_join(l_x_data))
 
   }
 
@@ -167,7 +182,7 @@ create_panel_data <- function(specs, data_set){
                         dplyr::group_by(cross_id)                                      %>%
                         dplyr::mutate_at(vars(-cross_id, -date_id), diff_function)     %>%
                         dplyr::ungroup()                                               %>%
-                        dplyr::rename_at(vars(-cross_id, -date_id), funs(paste0("d",.)))
+                        dplyr::rename_at(vars(-cross_id, -date_id), list(~paste0("d",.)))
 
   }
 
@@ -194,22 +209,49 @@ create_panel_data <- function(specs, data_set){
   # Create lagged exogenous data of first differences
   if(!is.null(specs$l_fd_exog_data)){
 
+    #--- Deprecated
+    # Specify column names to choose
+    # specs$l_fd_exog_data <- paste("d", specs$l_fd_exog_data, sep = "")
+
+    # # Make lag sequence
+    # lags_exog     <- seq(specs$lags_fd_exog_data)
+    # lag_names     <- paste("lag", lags_exog,  sep = "_")
+    #
+    # # Create lag function to use with dplyr
+    # lag_functions <- stats::setNames(paste("dplyr::lag(., ", lags_exog, ")"), lag_names)
+    #
+    # # Create data
+    # ld_x_data     <- d_x_data                                                            %>%
+    #                   dplyr::select(cross_id, date_id, specs$l_fd_exog_data )            %>%
+    #                   dplyr::group_by(cross_id)                                          %>%
+    #                   dplyr::mutate_at(vars(specs$l_fd_exog_data), funs_(lag_functions)) %>%
+    #                   dplyr::ungroup()                                                   %>%
+    #                   dplyr::select(-specs$l_fd_exog_data)# cross_id, date_id, contains("lag_")) #
+    # ---
+
     # Specify column names to choose
     specs$l_fd_exog_data <- paste("d", specs$l_fd_exog_data, sep = "")
 
     # Make lag sequence
-    lags_exog     <- seq(specs$lags_fd_exog_data)
-    lag_names     <- paste("lag", lags_exog,  sep = "_")
+    dlags_exog      <- seq(specs$lags_fd_exog_data)
 
-    # Create lag function to use with dplyr
-    lag_functions <- stats::setNames(paste("dplyr::lag(., ", lags_exog, ")"), lag_names)
+    # Lag function
+    lag_functions  <- lapply(dlags_exog, function(x) function(col) dplyr::lag(col, x))
 
-    # Create data
-    ld_x_data     <- d_x_data            %>%
-                      group_by(cross_id) %>%
-                      mutate_at(vars(specs$l_fd_exog_data), funs_(lag_functions)) %>%
-                      ungroup()                                                   %>%
-                      dplyr::select(cross_id, date_id, contains("lag_"))
+    # Make labels for lagged variables
+    col_dlag_labels <- paste(unlist(lapply(specs$l_fd_exog_data, rep, max(dlags_exog))), "_lag_", dlags_exog, sep = "")
+
+    # Make and get lagged data
+    ld_x_data       <- d_x_data %>%
+                      dplyr::select(cross_id, date_id, specs$l_fd_exog_data) %>%
+                      dplyr::group_by(cross_id)                           %>%
+                      dplyr::mutate(across(specs$l_fd_exog_data, lag_functions)) %>% # , .names = "{col_lag_labels}")
+                      dplyr::ungroup()                                    %>%
+                      dplyr::select(-specs$l_fd_exog_data)
+
+
+    # Rename columns
+    colnames(ld_x_data)[3:dim(ld_x_data)[2]] <- col_dlag_labels
 
     # Use lags of first differences as regressors
     x_reg_data    <- suppressMessages(x_reg_data %>%
@@ -231,17 +273,18 @@ create_panel_data <- function(specs, data_set){
 
                  } else {
 
-        fz      <- as.matrix(data_set[, specs$switching])
+        # fz    <- as.matrix(data_set[, specs$switching])
+        fz      <-  as.numeric(unlist(data_set[, specs$switching]))
 
         # Use first lag of value from switching function?
         if(isTRUE(specs$lag_switching)){
 
           fz_df <- tibble(cross_id = data_set$cross_id, date_id = data_set$date_id,
-                          fz = fz[, 1])
+                          fz = fz)
 
           fz_df <- fz_df %>%
                    dplyr::group_by(cross_id)                              %>%
-                   dplyr::mutate_at(vars(fz), funs(lag_function(., 1)))   %>%
+                   dplyr::mutate_at(vars(fz), list(~dplyr::lag(., 1)))   %>%
                    dplyr::ungroup()
 
           fz    <- fz_df$fz
@@ -273,11 +316,11 @@ create_panel_data <- function(specs, data_set){
 
     # Make states of shock variable
     shock_s1        <- shock %>%
-                        dplyr::mutate_at(vars(-cross_id, -date_id), funs(shock_s1 = .*(1 - fz)))  %>%
+                        dplyr::mutate_at(vars(-cross_id, -date_id), list(shock_s1 = ~.*(1 - fz)))  %>%
                         dplyr::select(-shock)
 
     shock_s2        <- shock %>%
-                        dplyr::mutate_at(vars(-cross_id, -date_id), funs(shock_s2 = .*fz))        %>%
+                        dplyr::mutate_at(vars(-cross_id, -date_id), list(shock_s2 = ~.*fz))        %>%
                         dplyr::select(-shock)
 
     # Exclude shock variable from 'x_reg_data'
@@ -288,11 +331,11 @@ create_panel_data <- function(specs, data_set){
     x_linear_names  <- colnames(x_reg_data)[!colnames(x_reg_data) %in% c("cross_id", "date_id")]
 
     x_nl_s1         <- x_reg_data %>%
-                        dplyr::mutate_at(vars(-cross_id, -date_id), funs(s1 = .*(1 - fz))) %>%
+                        dplyr::mutate_at(vars(-cross_id, -date_id), list(s1 = ~.*(1 - fz))) %>%
                         dplyr::select(-one_of(x_linear_names))
 
     x_nl_s2         <- x_reg_data %>%
-                        dplyr::mutate_at(vars(-cross_id, -date_id), funs(s2 = .*fz))  %>%
+                        dplyr::mutate_at(vars(-cross_id, -date_id), list(s2 = ~.*fz))  %>%
                         dplyr::select(-one_of(x_linear_names))
 
     x_reg_data      <-  suppressMessages(dplyr::left_join(shock_s1, shock_s2) %>%

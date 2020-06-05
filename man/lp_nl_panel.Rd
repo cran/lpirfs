@@ -4,17 +4,39 @@
 \alias{lp_nl_panel}
 \title{Compute nonlinear impulse responses for panel data}
 \usage{
-lp_nl_panel(data_set = NULL, data_sample = "Full", endog_data = NULL,
-  cumul_mult = TRUE, shock = NULL, diff_shock = TRUE,
-  panel_model = "within", panel_effect = "individual",
-  robust_cov = NULL, robust_method = NULL, robust_type = NULL,
-  robust_cluster = NULL, robust_maxlag = NULL, use_gmm = FALSE,
-  gmm_model = "onestep", gmm_effect = "twoways",
-  gmm_transformation = "d", c_exog_data = NULL, l_exog_data = NULL,
-  lags_exog_data = NaN, c_fd_exog_data = NULL, l_fd_exog_data = NULL,
-  lags_fd_exog_data = NaN, switching = NULL, use_logistic = TRUE,
-  use_hp = FALSE, lag_switching = TRUE, lambda = NULL,
-  gamma = NULL, confint = NULL, hor = NULL)
+lp_nl_panel(
+  data_set = NULL,
+  data_sample = "Full",
+  endog_data = NULL,
+  cumul_mult = TRUE,
+  shock = NULL,
+  diff_shock = TRUE,
+  panel_model = "within",
+  panel_effect = "individual",
+  robust_cov = NULL,
+  robust_method = NULL,
+  robust_type = NULL,
+  robust_cluster = NULL,
+  robust_maxlag = NULL,
+  use_gmm = FALSE,
+  gmm_model = "onestep",
+  gmm_effect = "twoways",
+  gmm_transformation = "d",
+  c_exog_data = NULL,
+  l_exog_data = NULL,
+  lags_exog_data = NaN,
+  c_fd_exog_data = NULL,
+  l_fd_exog_data = NULL,
+  lags_fd_exog_data = NaN,
+  switching = NULL,
+  use_logistic = TRUE,
+  use_hp = FALSE,
+  lag_switching = TRUE,
+  lambda = NULL,
+  gamma = NULL,
+  confint = NULL,
+  hor = NULL
+)
 }
 \arguments{
 \item{data_set}{A \link{data.frame}, containing the panel data set. The first column has to be the
@@ -227,36 +249,37 @@ data_sample <-   seq(2000, 2012)
 
 
 # Estimate panel model with gmm
-# This example gives a warning at each iteration. The data set is not well suited for
+# This example (please uncomment) gives a warning at each iteration.
+# The data set is not well suited for
 # GMM as GMM is based on N-asymptotics and the data set only contains 27 countries
 
-results_panel <-  lp_nl_panel(data_set           = data_set,
-                               data_sample       = data_sample,
-                               endog_data        = "mortgdp",
-                               cumul_mult        = TRUE,
-
-                               shock             = "stir",
-                               diff_shock        = TRUE,
-
-                               use_gmm            = TRUE,
-                               gmm_model          = "onestep",
-                               gmm_effect         = "twoways",
-                               gmm_transformation = "ld",
-
-                               switching         = "lrgdp",
-                               lag_switching     = TRUE,
-                               use_hp            = TRUE,
-                               lambda            = 6.25,
-                               gamma             = 10,
-
-                               l_exog_data       = "mortgdp",
-                               lags_exog_data    = 1,
-
-                               confint           = 1.67,
-                               hor               = 5)
+# results_panel <-  lp_nl_panel(data_set           = data_set,
+#                               data_sample       = data_sample,
+#                               endog_data        = "mortgdp",
+#                               cumul_mult        = TRUE,
+#
+#                               shock             = "stir",
+#                               diff_shock        = TRUE,
+#
+#                               use_gmm            = TRUE,
+#                               gmm_model          = "onestep",
+#                               gmm_effect         = "twoways",
+#                               gmm_transformation = "ld",
+#
+#                               switching         = "lrgdp",
+#                               lag_switching     = TRUE,
+#                               use_hp            = TRUE,
+#                               lambda            = 6.25,
+#                               gamma             = 10,
+#
+#                               l_exog_data       = "mortgdp",
+#                               lags_exog_data    = 1,
+#
+#                               confint           = 1.67,
+#                               hor               = 5)
 
 # Create and plot irfs
- plot(results_panel)
+# plot(results_panel)
 
 }
 }

@@ -1,6 +1,6 @@
-db8b79c4f651adb4e4510a4ee29620eb *DESCRIPTION
+8aec2f7608f6b0734c28edb8e12d1d77 *DESCRIPTION
 2aea9875b9a4ecd6ba171f9c3b5c19d8 *NAMESPACE
-02304e600f8a8b66be9dc7b6b4b7c506 *NEWS.md
+80685230bffe9ed7507427fab8365fc3 *NEWS.md
 4496f773c7029ed52172e6847e515959 *R/RcppExports.R
 3a924e1805ed680a6027b219eeb52ac5 *R/create_lags.R
 0b57d07d1bfa0ee63f6fc930bf3bb238 *R/create_lin_data.R
@@ -27,14 +27,14 @@ d5bb0b266930cb4dc8bea01561a91dbf *R/package.R
 90efb0378e05b4f62b65a884425b924f *R/plot_nl.R
 47580fa210c04320718603915f98290f *R/zzz.R
 ca523d2fbfc12281896aa463b0382391 *README.md
-10eef959744e331c44dc79927571df9c *build/vignette.rds
+9cdee46f0feb9e31d64bd6a4d678a1df *build/vignette.rds
 448707bc6d57f8c4147f4aaef49dc304 *data/ag_data.RData
 615367bb4534be215f5b375024fc2523 *data/interest_rules_var_data.RData
 0fef9a55d268844695b2cd24d3988618 *data/monetary_var_data.RData
 4e0e9cca6f6d80764948c0e2eab531a1 *inst/CITATION
-b979662675b3d92e845f80f5b4f0be78 *inst/doc/lpirfs_vignette.R
-85cb87eac8dbea28e46205b1880f7a2a *inst/doc/lpirfs_vignette.Rmd
-45c6df114fa23e65c203f8d756f1b15c *inst/doc/lpirfs_vignette.html
+fd1539738084a8292d6d43122e117c3a *inst/doc/lpirfs_vignette.R
+e14fba65405bb9b88d306e4409dad37b *inst/doc/lpirfs_vignette.Rmd
+606039ea1bfe9af3577cd049d2969fc2 *inst/doc/lpirfs_vignette.html
 02e3f6d5533c33bf1004aac14c17704c *man/ag_data.Rd
 e6ea9a847415d6f685c9eee4a3f2349f *man/create_lags.Rd
 5b3daf959d335c8f77fb15d1f30115f2 *man/create_lin_data.Rd
@@ -111,4 +111,4 @@ badc60bf781c07726862432fa17f5746 *tests/testthat/test-lp_nl_panel.R
 49bf5be9111403320e9f169e9d1b4545 *tests/testthat/test-newey_west.R
 4a21458517a6137ef9100c0b3d741439 *tests/testthat/test-plot_lin.R
 658a06539a727911050d720759ee54e2 *tests/testthat/test-plot_nl.R
-85cb87eac8dbea28e46205b1880f7a2a *vignettes/lpirfs_vignette.Rmd
+e14fba65405bb9b88d306e4409dad37b *vignettes/lpirfs_vignette.Rmd

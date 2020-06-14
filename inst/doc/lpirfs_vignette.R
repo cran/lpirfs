@@ -1,4 +1,4 @@
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 #####################################################################################################
 #                            ---   Code for Figure 1  ---                                  
@@ -25,13 +25,13 @@
    summary(results_lin)[[1]][1]
 
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE----
+## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 
  # Figure 1 in paper
  plot(results_lin)
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 
 #####################################################################################################
@@ -77,7 +77,7 @@
  nl_all_plots
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 #####################################################################################################
 #                           ---  Code for Figure 3 ---
@@ -161,14 +161,14 @@
  combine_plots_all <- marrangeGrob(lin_plots_all, nrow = 2, ncol = 3, top = NULL)
 
 
-## ---- fig.height = 4., fig.width = 6.5, fig.align = "center", message = FALSE----
+## ---- fig.height = 4., fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 
  
  # Show all plots
    combine_plots_all
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 #####################################################################################################
 #                               ---  Code for Figure 4 ---
@@ -233,7 +233,7 @@
 
 
 
-## ---- fig.height = 2.5, fig.width = 3, fig.align = "center", message = FALSE----
+## ---- fig.height = 2.5, fig.width = 3, fig.align = "center", message = FALSE, warning = FALSE----
 
 
 # Plot irfs
@@ -241,7 +241,7 @@
  
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 #####################################################################################################
 #                           ---  Code for Figure 5 ---
@@ -268,14 +268,14 @@
 
 
 
-## ---- fig.height = 2.5, fig.width = 5, fig.align = "center", message = FALSE----
+## ---- fig.height = 2.5, fig.width = 5, fig.align = "center", message = FALSE, warning = FALSE----
 
 
 # Show non-linear plots
   plot(results_panel)
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 #####################################################################################################
 #                        ---  Code for Figure 6 ---
@@ -443,7 +443,7 @@ a_3 <- annotate_figure(a_3, bottom = text_grob(paste("c.)", "p = ", p_lags[3], s
 
 
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE----
+## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 
 
 # Combine columns
@@ -451,7 +451,7 @@ combine_plot <- ggarrange(a_1, a_2, a_3, ncol = 3)
 combine_plot
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 
 #####################################################################################################
@@ -463,20 +463,17 @@ library(ggplot2)
 library(gridExtra)
 library(ggpubr)
 library(zoo)
-library(quantmod)
 
-# Use quantmod to get Recession data
-getSymbols("USREC",  src="FRED")
+# Recession dates
+  start_rec <- c("1957 Q3", "1960 Q2", "1970 Q1", "1973 Q4", "1980 Q1", "1981 Q3", "1990 Q3", "2001 Q2")
+  end_rec   <- c("1958 Q2", "1961 Q1", "1970 Q4", "1975 Q1", "1980 Q3", "1982 Q4", "1991 Q1", "2001 Q4")
 
-# Quarerly fequence for Jordá data
+# Quarterly fequence for Jordá data
   dates    <- as.yearqtr(seq(as.Date("1955/12/1"), as.Date("2003/1/1"), by = "quarter"))
 
-  start_rec <- as.yearqtr(index(USREC[which(diff(USREC$USREC) == 1)]))
-  end_rec   <- as.yearqtr(index(USREC[which(diff(USREC$USREC) == -1) -1]))
-
-  nber_rec_se <- tibble(start = as.yearqtr(start_rec), end = as.yearqtr(end_rec)[-1]) %>%
-                 filter(start %in% dates) %>%
-                 mutate(start = as.Date(start)) %>%
+  nber_rec_se <- tibble(start = as.yearqtr(start_rec), end = as.yearqtr(end_rec)) %>%
+                 filter(start %in% dates)                                             %>%
+                 mutate(start = as.Date(start))                                       %>%
                  mutate(end   = as.Date(end))
 
 # Convert back with as.Date for ggplot
@@ -484,25 +481,25 @@ getSymbols("USREC",  src="FRED")
 
 
 # Load data from lpirfs package
-endog_data         <- interest_rules_var_data
-switching_variable <-  interest_rules_var_data$GDP_gap
-
-hor        <- 12
-shock_pos  <- 3
+  endog_data         <- interest_rules_var_data
+  switching_variable <-  interest_rules_var_data$GDP_gap
+  
+  hor        <- 12
+  shock_pos  <- 3
 
 # Results for lpirfs
-results_s1_mean        <- matrix(NA, 3, hor + 1)
-results_s1_low         <- results_s1_mean
-results_s1_up          <- results_s1_mean
-
-results_s2_mean        <- matrix(NA, 3, hor + 1)
-results_s2_low         <- results_s2_mean
-results_s2_up          <- results_s2_mean
-
-fz_mat                 <- matrix(NA, 3, dim(endog_data)[1] - 4)
+  results_s1_mean        <- matrix(NA, 3, hor + 1)
+  results_s1_low         <- results_s1_mean
+  results_s1_up          <- results_s1_mean
+  
+  results_s2_mean        <- matrix(NA, 3, hor + 1)
+  results_s2_low         <- results_s2_mean
+  results_s2_up          <- results_s2_mean
+  
+  fz_mat                 <- matrix(NA, 3, dim(endog_data)[1] - 4)
 
 # Choose values for lambda and gamma
-gamma_vals  <- c(1, 5, 10)
+  gamma_vals  <- c(1, 5, 10)
 #lambda_vals <- c(6.25, 1600, 129,600)
 
 for(ii in seq_along(gamma_vals)){
@@ -638,7 +635,7 @@ for (kk in 1:3){
 
 
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE----
+## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 
 
 # Combine columns
@@ -646,7 +643,7 @@ combine_plot <- ggarrange(a_1, a_2, a_3, ncol = 3)
 combine_plot
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 
 
@@ -660,46 +657,46 @@ library(ggplot2)
 library(gridExtra)
 library(ggpubr)
 library(zoo)
-library(quantmod)
 
-# Use quantmod to get Recession data
-getSymbols("USREC",  src="FRED")
+# Recession dates
+  start_rec <- c("1957 Q3", "1960 Q2", "1970 Q1", "1973 Q4", "1980 Q1", "1981 Q3", "1990 Q3", "2001 Q2")
+  end_rec   <- c("1958 Q2", "1961 Q1", "1970 Q4", "1975 Q1", "1980 Q3", "1982 Q4", "1991 Q1", "2001 Q4")
 
-# Quarerly fequence for Jordá data
-dates    <- as.yearqtr(seq(as.Date("1955/12/1"), as.Date("2003/1/1"), by = "quarter"))
+# Quarterly fequence for Jordá data
+  dates    <- as.yearqtr(seq(as.Date("1955/12/1"), as.Date("2003/1/1"), by = "quarter"))
 
-start_rec <- as.yearqtr(index(USREC[which(diff(USREC$USREC) == 1)]))
-end_rec   <- as.yearqtr(index(USREC[which(diff(USREC$USREC) == -1) -1]))
-
-nber_rec_se <- tibble(start = as.yearqtr(start_rec), end = as.yearqtr(end_rec)[-1]) %>%
-                filter(start %in% dates) %>%
-                mutate(start = as.Date(start)) %>%
-                mutate(end   = as.Date(end))
+  nber_rec_se <- tibble(start = as.yearqtr(start_rec), end = as.yearqtr(end_rec)) %>%
+                 filter(start %in% dates)                                             %>%
+                 mutate(start = as.Date(start))                                       %>%
+                 mutate(end   = as.Date(end))
 
 # Convert back with as.Date for ggplot
-dates    <- as.Date(dates)
+  dates    <- as.Date(dates)
+
+# Convert back with as.Date for ggplot
+  dates    <- as.Date(dates)
 
 
 # Load data from lpirfs package
-endog_data         <- interest_rules_var_data
-switching_variable <-  interest_rules_var_data$GDP_gap
+  endog_data         <- interest_rules_var_data
+  switching_variable <-  interest_rules_var_data$GDP_gap
 
-hor        <- 12
-shock_pos  <- 3
+  hor        <- 12
+  shock_pos  <- 3
 
 # Results for lpirfs
-results_s1_mean        <- matrix(NA, 3, hor + 1)
-results_s1_low         <- results_s1_mean
-results_s1_up          <- results_s1_mean
+  results_s1_mean        <- matrix(NA, 3, hor + 1)
+  results_s1_low         <- results_s1_mean
+  results_s1_up          <- results_s1_mean
+  
+  results_s2_mean        <- matrix(NA, 3, hor + 1)
+  results_s2_low         <- results_s2_mean
+  results_s2_up          <- results_s2_mean
+  
+  fz_mat                 <- matrix(NA, 3, dim(endog_data)[1] - 4)
 
-results_s2_mean        <- matrix(NA, 3, hor + 1)
-results_s2_low         <- results_s2_mean
-results_s2_up          <- results_s2_mean
-
-fz_mat                 <- matrix(NA, 3, dim(endog_data)[1] - 4)
-1
 # Choose values for lambda
-lambda_vals <- c(6.25, 1600, 129600)
+  lambda_vals <- c(6.25, 1600, 129600)
 
 for(ii in seq_along(lambda_vals)){
 
@@ -734,17 +731,17 @@ for(ii in seq_along(lambda_vals)){
 col_names <- names(endog_data)
 
 # Colors to use
-col_regime_1 <- "#21618C"
-col_regime_2 <- "#D68910"
-
-
-irf_s1_plots <- list()
-irf_s2_plots <- list()
-fz_plots     <- list()
+  col_regime_1 <- "#21618C"
+  col_regime_2 <- "#D68910"
+  
+  
+  irf_s1_plots <- list()
+  irf_s2_plots <- list()
+  fz_plots     <- list()
 
 # Loop to fill to create plots
-plot_num  <- 1
-for (kk in 1:3){
+  plot_num  <- 1
+  for (kk in 1:3){
 
 
   # Convert matrices to tibble for ggplot
@@ -819,18 +816,18 @@ for (kk in 1:3){
 
 
 # Make column plots
-a_1 <- ggarrange(fz_plots[[1]], irf_s1_plots[[1]], irf_s2_plots[[1]], ncol = 1, nrow = 3)
-a_1 <- annotate_figure(a_1, bottom = text_grob(bquote(paste("a) Results for ", ~lambda == .(lambda_vals[1]))), face = "bold", size = 10, hjust = .3, vjust = .5))
+  a_1 <- ggarrange(fz_plots[[1]], irf_s1_plots[[1]], irf_s2_plots[[1]], ncol = 1, nrow = 3)
+  a_1 <- annotate_figure(a_1, bottom = text_grob(bquote(paste("a) Results for ", ~lambda == .(lambda_vals[1]))), face = "bold", size = 10, hjust = .3, vjust = .5))
+  
+  a_2 <- ggarrange(fz_plots[[2]], irf_s1_plots[[2]], irf_s2_plots[[2]], ncol = 1, nrow = 3)
+  a_2 <- annotate_figure(a_2, bottom = text_grob(bquote(paste("b) Results for ", ~lambda == .(lambda_vals[2]))), face = "bold", size = 10, hjust = .3, vjust = .5))
+  
+  a_3 <- ggarrange(fz_plots[[3]], irf_s1_plots[[3]], irf_s2_plots[[3]], ncol = 1, nrow = 3)
+  a_3 <- annotate_figure(a_3, bottom = text_grob(bquote(paste("c) Results for ", ~lambda == "129 600")), face = "bold", size = 10, hjust = .4, vjust = .5))
 
-a_2 <- ggarrange(fz_plots[[2]], irf_s1_plots[[2]], irf_s2_plots[[2]], ncol = 1, nrow = 3)
-a_2 <- annotate_figure(a_2, bottom = text_grob(bquote(paste("b) Results for ", ~lambda == .(lambda_vals[2]))), face = "bold", size = 10, hjust = .3, vjust = .5))
-
-a_3 <- ggarrange(fz_plots[[3]], irf_s1_plots[[3]], irf_s2_plots[[3]], ncol = 1, nrow = 3)
-a_3 <- annotate_figure(a_3, bottom = text_grob(bquote(paste("c) Results for ", ~lambda == "129 600")), face = "bold", size = 10, hjust = .4, vjust = .5))
 
 
-
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE----
+## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 
 # Combine columns
 combine_plot <- ggarrange(a_1, a_2, a_3, ncol = 3)
@@ -838,7 +835,7 @@ combine_plot
 
 
 
-## ---- message = FALSE---------------------------------------------------------
+## ---- message = FALSE, warning = FALSE----------------------------------------
 
 
 #####################################################################################################
@@ -950,7 +947,7 @@ x_labs <- c("a.) Normal Std. Errors", "b.) Newy West (1987)", "c.) Pre-whitened 
   a_3 <- annotate_figure(a_3, bottom = text_grob(x_labs[3], size = 8, hjust = .3, vjust = -1))
 
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE----
+## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 
 # Combine columns
   combine_plot <- ggarrange(a_1, a_2, a_3, ncol = 3)

@@ -7,6 +7,9 @@
 #' @param lags_endog_nl NaN or integer. NaN if lags are chosen by a lag length criterion. Integer for number of lags for \emph{endog_data}.
 #' @param shock One column \link{data.frame}, including the instrument to shock with.
 #'              The row length has to be the same as \emph{endog_data}.
+#' @param cumul_mult Boolean. Estimate cumulative multipliers? TRUE or FALSE (default). If TRUE, cumulative responses
+#'                   are estimated via: \deqn{y_{(t+h)} - y_{(t-1)},} where h = 0,..., H-1.
+#'                   This option is only available for \emph{lags_criterion = NaN}.
 #' @param instr Deprecated input name. Use \emph{shock} instead. See \emph{shock} for details.
 #' @param exog_data A \link{data.frame}, containing exogenous variables. The row length has to be the same as \emph{endog_data}.
 #'                  Lag lengths for exogenous variables have to be given and will no be determined via a lag length criterion.
@@ -167,6 +170,7 @@
 lp_nl_iv <- function(endog_data,
                             lags_endog_nl     = NULL,
                             shock             = NULL,
+                            cumul_mult        = FALSE,
                             instr             = NULL,
                             exog_data         = NULL,
                             lags_exog         = NULL,
@@ -192,6 +196,11 @@ lp_nl_iv <- function(endog_data,
   if(!is.null(instr)){
     shock = instr
     warning("'instr' is a deprecated input name. Use 'shock' instead.")
+  }
+
+  # Give warning if 'instr' is used as input name
+  if(isTRUE(cumul_mult) & is.character(lags_criterion)){
+    stop("The option cumul_mult = TRUE only works for a fixed number of lags.")
   }
 
   # Check whether data is a data.frame
@@ -308,7 +317,7 @@ lp_nl_iv <- function(endog_data,
      specs$contemp_data <- as.data.frame(contemp_data)
     }
 
-
+    specs$cumul_mult     <- cumul_mult
     specs$lags_exog      <- lags_exog
     specs$lags_criterion <- lags_criterion
     specs$max_lags       <- max_lags
@@ -402,8 +411,23 @@ lp_nl_iv <- function(endog_data,
 
                           for (h in 1:specs$hor){   # Accounts for the horizons
 
-                            yy  <-   y_nl[h:dim(y_nl)[1], ]
-                            xx  <-   x_nl[1:(dim(x_nl)[1] - h + 1), ]
+                            # Check whether cumulative multipliers shall be computed
+                            if(isTRUE(specs$cumul_mult)) {
+
+                              yy    <- dplyr::lead(y_nl, (h - 1)) - dplyr::lag(y_nl, 1)
+                              yy_xx <- cbind(yy, x_nl) %>%
+                                       stats::na.omit()
+
+                              yy    <- yy_xx[, 1:(dim(y_nl)[2])]
+                              xx    <- yy_xx[, (dim(y_nl)[2] + 1):dim(yy_xx)[2]]
+
+                            } else {
+
+                              yy  <-   y_nl[h:dim(y_nl)[1], ]
+                              xx  <-   x_nl[1:(dim(x_nl)[1] - h + 1), ]
+
+                            }
+
 
                             # Check whether data are matrices to correctly extract values
                             if(!is.matrix(xx)){

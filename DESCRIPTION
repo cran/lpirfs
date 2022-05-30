@@ -1,7 +1,7 @@
 Package: lpirfs
 Type: Package
 Title: Local Projections Impulse Response Functions
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: c(
             person("Philipp", "Adämmer", 
                     email   = "adaemmer@hsu-hh.de", 
@@ -18,25 +18,27 @@ Authors@R: c(
                     role    = c("ctb"))) 
 Maintainer: Philipp Adämmer <adaemmer@hsu-hh.de>
 BugReports: https://github.com/adaemmerp/lpirfs/issues
-Description: Provides functions to estimate and plot linear as well as nonlinear impulse 
+Description: Provides functions to estimate and visualize linear as well as nonlinear impulse 
              responses based on local projections by Jordà (2005) <doi:10.1257/0002828053828518>.
+             The methods and the package are explained in detail in Adämmer (2019) <doi:10.32614/RJ-2019-052>.
 License: GPL (>= 2)
 Depends: R (>= 3.1.2)
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes
 Imports: doParallel(>= 1.0.15), dplyr(>= 1.0.0), foreach(>= 1.5.0),
-        ggplot2(>= 3.3.0), ggpubr(>= 0.3.0), gridExtra(>= 2.3),
-        lmtest(>= 0.9-36), plm(>= 2.2-3), sandwich(>= 2.5-1), Rcpp(>=
-        1.0.4.6)
-RoxygenNote: 7.1.1
+        ggplot2(>= 3.3.0), gridExtra(>= 2.3), lmtest(>= 0.9-36), plm(>=
+        2.2-3), sandwich(>= 2.5-1), Rcpp(>= 1.0.4.6)
+RoxygenNote: 7.2.0
 LinkingTo: Rcpp, RcppArmadillo
-Suggests: testthat, readxl, knitr, rmarkdown, zoo, vars
+Suggests: testthat (>= 3.0.0), readxl, knitr, ggpubr, rmarkdown, zoo,
+        vars
 VignetteBuilder: knitr
-Packaged: 2021-03-23 14:23:59 UTC; adaemmep
+Config/testthat/edition: 3
+Packaged: 2022-05-30 08:37:43 UTC; adaemmep
 Author: Philipp Adämmer [aut, cre] (<https://orcid.org/0000-0003-3770-0097>),
   James P. LeSage [ctb],
   Mehmet Balcilar [ctb],
   Jon Danielsson [ctb]
 Repository: CRAN
-Date/Publication: 2021-03-23 16:10:02 UTC
+Date/Publication: 2022-05-30 09:30:02 UTC

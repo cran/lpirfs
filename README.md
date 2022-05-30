@@ -1,21 +1,26 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- # lpirfs <a href='https://journal.r-project.org/archive/2019/RJ-2019-052/index.html'><img src='man/figures/lpirfs_logo.png' align="right" height="180" /></a> -->
+<!-- <!-- # lpirfs   -->
 
-# lpirfs [![CRAN Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.org/package=lpirfs)
+–\>
+<!-- [![CRAN Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
+<!--  [![R-CMD-check](https://github.com/AdaemmerP/lpirfs/workflows/R-CMD-check/badge.svg)](https://github.com/AdaemmerP/lpirfs/actions) -->
+<!-- [![Total Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs)  -->
+<!-- [![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs) -->
+<!-- [![Coverage Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)  -->
 
-[![Build
-Status](https://travis-ci.com/AdaemmerP/lpirfs.svg)](https://travis-ci.com/AdaemmerP/lpirfs)
-[![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs)
-[![Total
-Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs)
-[![Coverage
-Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)
-
-# About
+## About
 
 An R-package which estimates linear and nonlinear impulse responses with
 local projections by [Jordà
-(2005)](https://www.aeaweb.org/articles?id=10.1257/0002828053828518).
+(2005)](https://www.aeaweb.org/articles?id=10.1257/0002828053828518).<br />
+
+## Citation
+
+Please cite the paper by [Adämmer
+(2019)](https://journal.r-project.org/archive/2019/RJ-2019-052/index.html)
+when using the package.
 
 ## Main features
 
@@ -57,7 +62,7 @@ On macOS you need the Clang 6.x compiler and the GNU Fortran compiler
 from [macOS tools](https://cran.r-project.org/bin/macosx/tools/). Having
 installed the compilers, you need to open a terminal and start R via
 ‘PATH=/usr/local/clang6/bin:$PATH R’. Yo can then install the package
-via *devtools::install\_github(“AdaemmerP/lpirfs”)*
+via *devtools::install_github(“AdaemmerP/lpirfs”)*
 
 ## How to use
 
@@ -91,4 +96,4 @@ Philipp Adämmer
 
 ### License
 
-GPL (&gt;= 2)
+GPL (\>= 2)

@@ -12,7 +12,7 @@ Version](https://www.r-pkg.org/badges/version/lpirfs)](https://CRAN.R-project.or
 Downloads](https://cranlogs.r-pkg.org/badges/grand-total/lpirfs?color=orange)](https://CRAN.R-project.org/package=lpirfs)
 [![Downloads](https://cranlogs.r-pkg.org/badges/lpirfs)](https://CRAN.R-project.org/package=lpirfs)
 [![Coverage
-Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://codecov.io/github/adaemmerp/lpirfs?branch=master)
+Status](https://codecov.io/gh/adaemmerp/lpirfs/graph/badge.svg)](https://app.codecov.io/github/adaemmerp/lpirfs?branch=master)
 
 ## About
 
@@ -28,15 +28,15 @@ when using the package.
 
 ## Main features
 
--   Estimates linear and nonlinear impulse responses with local
-    projections.
--   Estimates linear and nonlinear impulse responses with identified
-    shock and/or with 2SLS.
--   Estimates linear and nonlinear impulse responses with local
-    projections for panel data.
--   Functions to plot linear and nonlinear impulse responses.
--   Functions are partly implemented in *Rcpp*/*RcppArmadillo* and
-    partly written for parallel computation to improve efficiency.
+- Estimates linear and nonlinear impulse responses with local
+  projections.
+- Estimates linear and nonlinear impulse responses with identified shock
+  and/or with 2SLS.
+- Estimates linear and nonlinear impulse responses with local
+  projections for panel data.
+- Functions to plot linear and nonlinear impulse responses.
+- Functions are partly implemented in *Rcpp*/*RcppArmadillo* and partly
+  written for parallel computation to improve efficiency.
 
 ## Installation
 
@@ -52,21 +52,11 @@ You can install the development version of **lpirfs** from
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("AdaemmerP/lpirfs")
+devtools::install_github("https://github.com/AdaemmerP/lpirfs/tree/dev")
 ```
 
-The package compiles some C++ source code for installation, which is why
-you need the appropriate compilers:
-
-On Windows you need
-[Rtools](https://cran.r-project.org/bin/windows/Rtools/) available from
-CRAN.
-
-On macOS you need the Clang 6.x compiler and the GNU Fortran compiler
-from [macOS tools](https://cran.r-project.org/bin/macosx/tools/). Having
-installed the compilers, you need to open a terminal and start R via
-‘PATH=/usr/local/clang6/bin:$PATH R’. Yo can then install the package
-via *devtools::install_github(“AdaemmerP/lpirfs”)*
+As lpirfs compiles some C++ source code, you will need to have installed
+the appropriate compilers to build the development version.
 
 ## How to use
 

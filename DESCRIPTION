@@ -1,7 +1,7 @@
 Package: lpirfs
 Type: Package
 Title: Local Projections Impulse Response Functions
-Version: 0.2.3
+Version: 0.2.4
 Authors@R: c(
             person("Philipp", "Adämmer", 
                     email   = "philipp.adaemmer@uni-greifswald.de", 
@@ -29,16 +29,16 @@ NeedsCompilation: yes
 Imports: doParallel(>= 1.0.15), dplyr(>= 1.0.0), foreach(>= 1.5.0),
         ggplot2(>= 3.3.0), gridExtra(>= 2.3), lmtest(>= 0.9-36), plm(>=
         2.2-3), sandwich(>= 2.5-1), Rcpp(>= 1.0.4.6)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 LinkingTo: Rcpp, RcppArmadillo
-Suggests: testthat (>= 3.0.0), readxl, knitr, ggpubr, rmarkdown, zoo,
-        vars
+Suggests: testthat (>= 3.0.0), AER(>= 1.2-12), readxl, knitr, ggpubr,
+        rmarkdown, zoo, vars
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-Packaged: 2023-06-30 12:00:38 UTC; adaemmerp
+Packaged: 2025-03-18 13:04:37 UTC; adaemmerp
 Author: Philipp Adämmer [aut, cre] (<https://orcid.org/0000-0003-3770-0097>),
   James P. LeSage [ctb],
   Mehmet Balcilar [ctb],
   Jon Danielsson [ctb]
 Repository: CRAN
-Date/Publication: 2023-07-06 07:50:03 UTC
+Date/Publication: 2025-03-18 13:30:02 UTC

@@ -1,4 +1,4 @@
-## ---- message = FALSE, warning = FALSE----------------------------------------
+## ----message = FALSE, warning = FALSE-----------------------------------------
 # Load packages
   library(lpirfs)
   library(dplyr)
@@ -9,7 +9,7 @@
   library(ggplot2)
   library(zoo)
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
+## ----fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 #####################################################################################################
 #                            ---   Code for Figure 1  ---                                  
 #####################################################################################################
@@ -32,7 +32,7 @@
  plot(results_lin)
 
 
-## ---- fig.height = 6, fig.width = 5, fig.align = "center", message = FALSE----
+## ----fig.height = 6, fig.width = 5, fig.align = "center", message = FALSE-----
 #####################################################################################################
 #                          ---  Code for Figure 2 ---
 #####################################################################################################
@@ -68,7 +68,7 @@
  nl_all_plots
 
 
-## ---- fig.height = 4., fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
+## ----fig.height = 4., fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 #####################################################################################################
 #                           ---  Code for Figure 3 ---
 #####################################################################################################
@@ -153,7 +153,7 @@
 # Show all plots
   combine_plots_all
 
-## ---- fig.height = 2.5, fig.width = 3, fig.align = "center",  message = FALSE, warning = FALSE----
+## ----fig.height = 2.5, fig.width = 3, fig.align = "center",  message = FALSE, warning = FALSE----
 #####################################################################################################
 #                               ---  Code for Figure 4 ---
 #####################################################################################################
@@ -218,7 +218,7 @@
 # # Plot irfs
 #   plot(results_panel)
 
-## ---- fig.height = 2.5, fig.width = 5, fig.align = "center",  message = FALSE, warning = FALSE----
+## ----fig.height = 2.5, fig.width = 5, fig.align = "center",  message = FALSE, warning = FALSE----
 #####################################################################################################
 #                           ---  Code for Figure 5 ---
 #####################################################################################################
@@ -244,7 +244,7 @@
 # # Show non-linear plots
 #   plot(results_panel)
 
-## ---- message = FALSE, warning = FALSE----------------------------------------
+## ----message = FALSE, warning = FALSE-----------------------------------------
 #####################################################################################################
 #                        ---  Code for Figure 6 ---
 #####################################################################################################
@@ -404,12 +404,12 @@ a_2 <- annotate_figure(a_2, bottom = text_grob(paste("b.)", "p = ", p_lags[2], s
 a_3 <- ggarrange(gg_lin[[7]], gg_lin[[8]], gg_lin[[9]], ncol = 1, nrow = 3, common.legend = TRUE, legend = "bottom")
 a_3 <- annotate_figure(a_3, bottom = text_grob(paste("c.)", "p = ", p_lags[3], sep = " "), size = 7, hjust = -.1, vjust = 0.5))
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
+## ----fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 # Combine columns
 combine_plot <- ggarrange(a_1, a_2, a_3, ncol = 3)
 combine_plot
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
+## ----fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 #####################################################################################################
 #                         ---  Code for Figure 7 ---
 #####################################################################################################
@@ -588,7 +588,7 @@ for (kk in 1:3){
 
 
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
+## ----fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 #####################################################################################################
 #                            ---  Code for Figure 8 ---
 #####################################################################################################
@@ -769,7 +769,7 @@ col_names <- names(endog_data)
 
 
 
-## ---- fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
+## ----fig.height = 6, fig.width = 6.5, fig.align = "center", message = FALSE, warning = FALSE----
 #####################################################################################################
 #                   Comparing normal and Newey West standard errors
 #####################################################################################################
